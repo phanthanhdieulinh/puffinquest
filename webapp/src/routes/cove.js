@@ -40,6 +40,47 @@ router.get("/queue", requireAuth, async (req, res) => {
   });
 });
 
+// Backs the "send your quest link to a friend" feature: a direct link to
+// review one specific submission, instead of the shuffled general queue.
+router.get("/submission/:id", requireAuth, async (req, res) => {
+  const submissionId = parseInt(req.params.id, 10);
+  if (!submissionId) return res.status(400).json({ error: "Invalid link." });
+
+  const { rows } = await pool.query(
+    `SELECT s.*, u.username, u.display_name, u.social_facebook, u.social_instagram, u.social_linkedin
+     FROM submissions s JOIN users u ON u.id = s.user_id WHERE s.id = $1`,
+    [submissionId]
+  );
+  const row = rows[0];
+  if (!row) return res.json({ status: "not-found" });
+  if (row.user_id === req.user.id) return res.json({ status: "own" });
+  if (row.status !== "pending") return res.json({ status: "closed" });
+
+  const already = await pool.query("SELECT id FROM reviews WHERE submission_id = $1 AND reviewer_id = $2", [
+    submissionId,
+    req.user.id
+  ]);
+  if (already.rows[0]) return res.json({ status: "already-reviewed" });
+
+  res.json({
+    status: "ready",
+    submission: {
+      id: row.id,
+      questId: row.quest_id,
+      title: row.title,
+      icon: row.icon,
+      caption: row.caption || "",
+      thumb: row.thumb || null,
+      byName: row.display_name || row.username,
+      socialLinks: content.buildSocialLinks(row.username, {
+        facebook: row.social_facebook,
+        instagram: row.social_instagram,
+        linkedin: row.social_linkedin
+      })
+    }
+  });
+});
+
 router.post("/review", requireAuth, async (req, res) => {
   const submissionId = parseInt(req.body && req.body.submissionId, 10);
   const decision = String((req.body && req.body.decision) || "");

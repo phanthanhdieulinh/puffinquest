@@ -4,6 +4,7 @@ const path = require("path");
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const { initSchema } = require("./db");
+const { ensureBotUsers } = require("./bots");
 
 const authRoutes = require("./routes/auth");
 const contentRoutes = require("./routes/content");
@@ -42,6 +43,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 
 initSchema()
+  .then(() => ensureBotUsers())
   .then(() => {
     app.listen(PORT, () => console.log("Puffin Quest listening on port " + PORT));
   })

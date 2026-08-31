@@ -85,8 +85,14 @@ CREATE TABLE IF NOT EXISTS catch_log (
 CREATE INDEX IF NOT EXISTS idx_catch_log_user ON catch_log(user_id);
 `;
 
+// ADD COLUMN IF NOT EXISTS so upgrades to an already-deployed database are safe.
+const MIGRATIONS = [`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_bot BOOLEAN NOT NULL DEFAULT false;`];
+
 async function initSchema() {
   await pool.query(SCHEMA);
+  for (const stmt of MIGRATIONS) {
+    await pool.query(stmt);
+  }
 }
 
 module.exports = { pool, initSchema };

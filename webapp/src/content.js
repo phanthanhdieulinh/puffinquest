@@ -11,6 +11,15 @@ const REVIEW_APPROVALS_NEEDED = 3;
 const REVIEWER_REWARD = 1;
 const COVE_DAILY_CAP = 200; // sanity cap, not a real gameplay limit
 
+// Every submission is pre-approved by 2 always-on bot puffineers so a quest
+// never gets stuck waiting on a quiet Cove — only 1 real puffineer's
+// approval is needed to finish it off.
+const BOT_REVIEWERS = [
+  { username: "cove_bot_breezy", displayName: "Breezy Puffin" },
+  { username: "cove_bot_tidal", displayName: "Tidal Puffin" }
+];
+const BOT_COMMENTS = ["Nice job! 🎉", "Love this!", "You've got this 🔥", "So wholesome", "Way to go!", "Great find!", "Keep it up!"];
+
 const DAILY_POOL = [
   { id: "veggie", icon: "🥦", title: "Grocery Grab", desc: "Get one veggie at the store. Snap it in your bag, or the receipt line that proves it.", reward: 10 },
   { id: "bird", icon: "🐦", title: "Bird Watch", desc: "Find a bird — any bird — and get a photo of it before it flies off.", reward: 12 },
@@ -168,6 +177,8 @@ module.exports = {
   REVIEW_APPROVALS_NEEDED,
   REVIEWER_REWARD,
   COVE_DAILY_CAP,
+  BOT_REVIEWERS,
+  BOT_COMMENTS,
   DAILY_POOL,
   FUN_POOL,
   FIGHT_DEFS,

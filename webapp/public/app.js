@@ -17,6 +17,7 @@
   let previewDataUrl = null;
   let previewThumb = null;
   let pollTimer = null;
+  let pendingDirectReviewAfterAuth = null;
 
   const $ = (id) => document.getElementById(id);
 
@@ -122,9 +123,9 @@
 
   /* ================= SOCIAL ICONS ================= */
   const SOCIAL_META = {
-    facebook: { icon: "📘", label: "Facebook" },
-    instagram: { icon: "📸", label: "Instagram" },
-    linkedin: { icon: "💼", label: "LinkedIn" }
+    facebook: { symbol: "i-facebook", label: "Facebook" },
+    instagram: { symbol: "i-instagram", label: "Instagram" },
+    linkedin: { symbol: "i-linkedin", label: "LinkedIn" }
   };
 
   function renderSocialIcons(container, socialLinks) {
@@ -135,7 +136,7 @@
       if (!url) return;
       const span = document.createElement("span");
       span.className = "social-icon-link";
-      span.textContent = SOCIAL_META[key].icon;
+      span.innerHTML = '<svg viewBox="0 0 40 40"><use href="#' + SOCIAL_META[key].symbol + '"/></svg>';
       span.title = SOCIAL_META[key].label;
       span.setAttribute("role", "link");
       span.setAttribute("tabindex", "0");
@@ -195,7 +196,7 @@
     try {
       const { token: t } = await api("/auth/login", { method: "POST", body: { username, password } });
       setToken(t);
-      await bootApp();
+      await afterAuthSuccess();
     } catch (err) {
       showAuthError(err.message);
     }
@@ -215,11 +216,20 @@
     try {
       const { token: t } = await api("/auth/register", { method: "POST", body: { username, password, socialLinks } });
       setToken(t);
-      await bootApp();
+      await afterAuthSuccess();
     } catch (err) {
       showAuthError(err.message);
     }
   });
+
+  async function afterAuthSuccess() {
+    await bootApp();
+    if (pendingDirectReviewAfterAuth) {
+      const id = pendingDirectReviewAfterAuth;
+      pendingDirectReviewAfterAuth = null;
+      openDirectReview(id);
+    }
+  }
 
   $("logout-btn").addEventListener("click", async () => {
     try {
@@ -230,14 +240,77 @@
     location.reload();
   });
 
-  $("brand-btn").addEventListener("click", () => {
-    toast("Real quests, reviewed by real puffineers 🐧", "🌿");
+  $("brand-btn").addEventListener("click", () => openLanding());
+
+  /* ================= LANDING PAGE (always reachable at /intro) ================= */
+  const landingScroll = $("landing-scroll");
+  let landingRevealObserver = null;
+  function openLanding(pushUrl) {
+    $("landing-overlay").classList.add("open");
+    document.body.style.overflow = "hidden";
+    landingScroll.scrollTop = 0;
+    if (pushUrl !== false) history.pushState(null, "", "/intro");
+    if (!landingRevealObserver && "IntersectionObserver" in window) {
+      landingRevealObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("in-view");
+              landingRevealObserver.unobserve(entry.target);
+            }
+          });
+        },
+        { root: landingScroll, threshold: 0.15, rootMargin: "0px 0px -8% 0px" }
+      );
+    }
+    if (landingRevealObserver) {
+      document.querySelectorAll(".landing-reveal:not(.in-view)").forEach((el) => landingRevealObserver.observe(el));
+    } else {
+      document.querySelectorAll(".landing-reveal").forEach((el) => el.classList.add("in-view"));
+    }
+  }
+  function closeLanding() {
+    $("landing-overlay").classList.remove("open");
+    document.body.style.overflow = "";
+    if (location.pathname === "/intro") history.pushState(null, "", "/");
+  }
+  $("landing-close").addEventListener("click", closeLanding);
+  $("landing-start-btn").addEventListener("click", closeLanding);
+  $("landing-overlay").addEventListener("click", (e) => {
+    if (e.target === $("landing-overlay")) closeLanding();
   });
-  $("quest-mascot").addEventListener("click", () => {
-    const speech = $("quest-puffin-speech");
-    speech.classList.add("show");
-    setTimeout(() => speech.classList.remove("show"), 1800);
-  });
+
+  function wirePuffinGreet(mascotId, speechId, kidsContainerId) {
+    const mascot = $(mascotId);
+    const speech = $(speechId);
+    const kids = document.querySelectorAll("#" + kidsContainerId + " .puffin-kid");
+    let timer = null;
+    mascot.addEventListener("click", () => {
+      clearTimeout(timer);
+      speech.classList.remove("show");
+      kids.forEach((k) => k.classList.remove("show"));
+      void mascot.offsetWidth;
+      speech.classList.add("show");
+      kids.forEach((k) => k.classList.add("show"));
+      timer = setTimeout(() => {
+        speech.classList.remove("show");
+        kids.forEach((k) => k.classList.remove("show"));
+      }, 2200);
+    });
+  }
+  wirePuffinGreet("landing-mascot", "puffin-speech", "puffin-kids");
+  wirePuffinGreet("quest-mascot", "quest-puffin-speech", "quest-puffin-kids");
+
+  const landingCarousel = $("landing-carousel");
+  landingCarousel.addEventListener(
+    "wheel",
+    (e) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      landingCarousel.scrollLeft += e.deltaY;
+      e.preventDefault();
+    },
+    { passive: false }
+  );
 
   /* ================= HEADER / DASHBOARD ================= */
   function renderHeader() {
@@ -356,6 +429,14 @@
   $("modal-close").addEventListener("click", closeModal);
   $("pending-close-btn").addEventListener("click", closeModal);
   $("done-close-btn").addEventListener("click", closeModal);
+  $("pending-share-btn").addEventListener("click", () => {
+    const pending = pendingSubmissions.find((p) => p.questId === activeQuestId);
+    if (!pending) return;
+    const url = new URL(location.href);
+    url.search = "";
+    url.pathname = "/review/" + pending.id;
+    copyToClipboard(url.toString(), "Review link copied — send it to a friend!");
+  });
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) closeModal();
   });
@@ -363,6 +444,8 @@
     if (e.key !== "Escape") return;
     if (overlay.classList.contains("open")) closeModal();
     else if ($("shared-profile-overlay").classList.contains("open")) closeSharedProfile();
+    else if ($("landing-overlay").classList.contains("open")) closeLanding();
+    else if ($("direct-review-overlay").classList.contains("open")) closeDirectReview();
   });
 
   function makeThumbnail(dataUrl, cb, maxSize) {
@@ -1002,7 +1085,7 @@
   document.querySelector("#page-bird .cover-share-btn").addEventListener("click", () => {
     const url = new URL(location.href);
     url.search = "";
-    url.searchParams.set("u", user.username);
+    url.pathname = "/bird/" + encodeURIComponent(user.username);
     copyToClipboard(url.toString(), "Profile link copied!");
   });
 
@@ -1047,15 +1130,83 @@
   function closeSharedProfile() {
     $("shared-profile-overlay").classList.remove("open");
     document.body.style.overflow = "";
-    const params = new URLSearchParams(location.search);
-    params.delete("u");
-    const qs = params.toString();
-    history.replaceState(null, "", location.pathname + (qs ? "?" + qs : ""));
+    if (/^\/bird\//.test(location.pathname)) history.pushState(null, "", "/");
+    if (!token) showAuth();
   }
   $("shared-profile-close").addEventListener("click", closeSharedProfile);
   $("shared-start-own-btn").addEventListener("click", closeSharedProfile);
   $("shared-profile-overlay").addEventListener("click", (e) => {
     if (e.target === $("shared-profile-overlay")) closeSharedProfile();
+  });
+
+  /* ================= DIRECT REVIEW (link a friend sends you) ================= */
+  let directReviewSubmissionId = null;
+
+  async function openDirectReview(submissionId) {
+    directReviewSubmissionId = submissionId;
+    $("direct-review-overlay").classList.add("open");
+    document.body.style.overflow = "hidden";
+    const body = $("direct-review-body");
+    body.innerHTML = '<p class="qdesc-full">Loading…</p>';
+    try {
+      const data = await api("/cove/submission/" + submissionId);
+      if (data.status === "own") {
+        body.innerHTML = '<p class="qdesc-full">This is your own quest — share the link with someone else to get it reviewed!</p>';
+        return;
+      }
+      if (data.status === "closed") {
+        body.innerHTML = '<p class="qdesc-full">This quest has already finished being reviewed. Thanks for checking!</p>';
+        return;
+      }
+      if (data.status === "already-reviewed") {
+        body.innerHTML = '<p class="qdesc-full">You already reviewed this one. Thanks for helping out! 🐧</p>';
+        return;
+      }
+      if (data.status === "not-found") {
+        body.innerHTML = '<p class="qdesc-full">Couldn\'t find that quest — the link may be wrong.</p>';
+        return;
+      }
+      const item = data.submission;
+      $("direct-review-icon").textContent = item.icon;
+      $("direct-review-title").textContent = item.title;
+      const photoInner = item.thumb ? '<img src="' + item.thumb + '" alt="" />' : item.icon;
+      body.innerHTML =
+        '<div class="rcard-photo">' + photoInner + "</div>" +
+        '<div class="rcard-meta" style="justify-content:center;"><span>' + item.byName + '</span><span class="social-icons"></span></div>' +
+        (item.caption ? '<div class="rcard-caption">"' + item.caption + '"</div>' : "") +
+        '<div class="caption-row"><input type="text" id="direct-review-comment" class="glass-input" maxlength="50" placeholder="Cheer them on (optional)" /></div>' +
+        '<div class="direct-review-actions"><button class="rbtn rbtn-skip" id="direct-review-skip-btn" type="button">✕ Skip</button><button class="rbtn rbtn-approve" id="direct-review-approve-btn" type="button">👍 Approve</button></div>';
+      renderSocialIcons(body.querySelector(".social-icons"), item.socialLinks);
+      body.querySelector("#direct-review-approve-btn").addEventListener("click", () => submitDirectReview("approve"));
+      body.querySelector("#direct-review-skip-btn").addEventListener("click", () => submitDirectReview("skip"));
+    } catch (err) {
+      body.innerHTML = '<p class="qdesc-full">' + err.message + "</p>";
+    }
+  }
+
+  async function submitDirectReview(decision) {
+    const commentEl = $("direct-review-comment");
+    const comment = decision === "approve" && commentEl ? commentEl.value.trim().slice(0, 50) : "";
+    const body = $("direct-review-body");
+    try {
+      const result = await api("/cove/review", { method: "POST", body: { submissionId: directReviewSubmissionId, decision, comment } });
+      if (result.reviewerReward) {
+        toast("Thanks for reviewing! +" + result.reviewerReward + " Puffin", "🐧");
+      }
+      body.innerHTML = '<p class="qdesc-full">Thanks for helping out! 🎉 Want to start your own Puffin Quest journey?</p>';
+    } catch (err) {
+      body.innerHTML = '<p class="qdesc-full">' + err.message + "</p>";
+    }
+  }
+
+  function closeDirectReview() {
+    $("direct-review-overlay").classList.remove("open");
+    document.body.style.overflow = "";
+    if (/^\/review\//.test(location.pathname)) history.pushState(null, "", "/");
+  }
+  $("direct-review-close").addEventListener("click", closeDirectReview);
+  $("direct-review-overlay").addEventListener("click", (e) => {
+    if (e.target === $("direct-review-overlay")) closeDirectReview();
   });
 
   /* ================= NAVIGATION ================= */
@@ -1126,10 +1277,6 @@
       renderFishPanels();
       renderCoveProgress();
 
-      const params = new URLSearchParams(location.search);
-      const sharedUsername = params.get("u");
-      if (sharedUsername) openSharedProfile(sharedUsername);
-
       if (pollTimer) clearInterval(pollTimer);
       pollTimer = setInterval(pollUpdates, 7000);
     } catch (err) {
@@ -1138,9 +1285,26 @@
     }
   }
 
+  /* ================= ROUTING (works even before/without sign-in) ================= */
+  const initialPath = location.pathname;
+  const birdMatch = initialPath.match(/^\/bird\/([^/]+)\/?$/);
+  const reviewMatch = initialPath.match(/^\/review\/(\d+)\/?$/);
+
+  if (initialPath === "/intro") openLanding(false);
+  if (birdMatch) openSharedProfile(decodeURIComponent(birdMatch[1]));
+
   if (token) {
-    bootApp();
+    if (reviewMatch) {
+      bootApp().then(() => openDirectReview(parseInt(reviewMatch[1], 10)));
+    } else {
+      bootApp();
+    }
+  } else if (birdMatch) {
+    // A shared profile link is a public page — don't stack the sign-in
+    // wall behind it. It appears once the visitor closes the profile.
+    $("auth-overlay").classList.remove("open");
   } else {
     showAuth();
+    if (reviewMatch) pendingDirectReviewAfterAuth = parseInt(reviewMatch[1], 10);
   }
 })();
