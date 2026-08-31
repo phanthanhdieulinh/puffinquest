@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Puffin Quest</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="description" content="A cute liquid-glass quest game — daily quests, a real community photo review cove, seasonal fights, fishing for rewards, and a shareable profile." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ============ TOKENS ============ */
+  :root{
+    --bg-1:#EAF4F1;
+    --bg-2:#D8ECE6;
+    --bg-3:#F6FBF9;
+    --surface:rgba(255,255,255,.52);
+    --surface-strong:rgba(255,255,255,.78);
+    --surface-soft:rgba(255,255,255,.34);
+    --border-glass:rgba(255,255,255,.65);
+    --border-glass-soft:rgba(255,255,255,.4);
+    --ink:#12313A;
+    --ink-soft:#4C6C6E;
+    --ink-faint:#7C9B9A;
+    --coral:#FF6B4A;
+    --coral-dark:#E24E2C;
+    --coral-ink:#8C2E17;
+    --gold:#FFC94D;
+    --gold-ink:#8A5A00;
+    --kelp:#1B6B63;
+    --kelp-soft:#DCEFE9;
+    --shadow:rgba(20,52,58,.16);
+    --shadow-strong:rgba(20,52,58,.28);
+    --danger:#E24E2C;
+    --blob-a:#FFB199;
+    --blob-b:#9FE0D4;
+    --blob-c:#FFE29A;
+    --radius-xl:32px;
+    --radius-lg:24px;
+    --radius-md:16px;
+    --radius-sm:12px;
+    --radius-pill:999px;
+    --nav-h:74px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg-1:#081A21;
+      --bg-2:#0D2530;
+      --bg-3:#0A1F27;
+      --surface:rgba(18,44,52,.55);
+      --surface-strong:rgba(22,50,58,.8);
+      --surface-soft:rgba(18,44,52,.32);
+      --border-glass:rgba(255,255,255,.14);
+      --border-glass-soft:rgba(255,255,255,.08);
+      --ink:#EAF6F3;
+      --ink-soft:#9FC4C2;
+      --ink-faint:#6C918F;
+      --coral:#FF8A66;
+      --coral-dark:#FF6B4A;
+      --coral-ink:#FFD9CC;
+      --gold:#FFD873;
+      --gold-ink:#4A3400;
+      --kelp:#4FD1C0;
+      --kelp-soft:#123A38;
+      --shadow:rgba(0,0,0,.45);
+      --shadow-strong:rgba(0,0,0,.6);
+      --blob-a:#3A2A26;
+      --blob-b:#123A38;
+      --blob-c:#3A2E14;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg-1:#081A21;
+    --bg-2:#0D2530;
+    --bg-3:#0A1F27;
+    --surface:rgba(18,44,52,.55);
+    --surface-strong:rgba(22,50,58,.8);
+    --surface-soft:rgba(18,44,52,.32);
+    --border-glass:rgba(255,255,255,.14);
+    --border-glass-soft:rgba(255,255,255,.08);
+    --ink:#EAF6F3;
+    --ink-soft:#9FC4C2;
+    --ink-faint:#6C918F;
+    --coral:#FF8A66;
+    --coral-dark:#FF6B4A;
+    --coral-ink:#FFD9CC;
+    --gold:#FFD873;
+    --gold-ink:#4A3400;
+    --kelp:#4FD1C0;
+    --kelp-soft:#123A38;
+    --shadow:rgba(0,0,0,.45);
+    --shadow-strong:rgba(0,0,0,.6);
+    --blob-a:#3A2A26;
+    --blob-b:#123A38;
+    --blob-c:#3A2E14;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:linear-gradient(180deg,var(--bg-1),var(--bg-2) 55%,var(--bg-3));
+    color:var(--ink);
+    font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+    min-height:100vh;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4,.display{font-family:"Fredoka","Plus Jakarta Sans",sans-serif;font-weight:600;letter-spacing:-.01em;text-wrap:balance;}
+  .mono{font-family:"Space Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+  a{color:inherit;}
+  button{font-family:inherit;-webkit-tap-highlight-color:transparent;}
+  ::selection{background:var(--coral);color:#fff;}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important;}
+  }
+
+  /* ============ AMBIENT BLOBS ============ */
+  .scene{position:fixed;inset:0;z-index:-1;overflow:hidden;}
+  .blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.55;will-change:transform;}
+  .blob-1{width:52vmax;height:52vmax;left:-18vmax;top:-16vmax;background:radial-gradient(circle at 35% 35%,var(--blob-a),transparent 70%);animation:drift1 34s ease-in-out infinite alternate;}
+  .blob-2{width:46vmax;height:46vmax;right:-16vmax;top:6vmax;background:radial-gradient(circle at 60% 40%,var(--blob-b),transparent 70%);animation:drift2 40s ease-in-out infinite alternate;}
+  .blob-3{width:40vmax;height:40vmax;left:18vmax;bottom:-20vmax;background:radial-gradient(circle at 50% 50%,var(--blob-c),transparent 70%);animation:drift3 46s ease-in-out infinite alternate;}
+  @keyframes drift1{from{transform:translate(0,0) scale(1);}to{transform:translate(6vmax,5vmax) scale(1.12);}}
+  @keyframes drift2{from{transform:translate(0,0) scale(1);}to{transform:translate(-5vmax,7vmax) scale(1.08);}}
+  @keyframes drift3{from{transform:translate(0,0) scale(1);}to{transform:translate(4vmax,-4vmax) scale(1.15);}}
+
+  /* ============ GLASS ============ */
+  .glass{
+    background:var(--surface);
+    -webkit-backdrop-filter:blur(22px) saturate(160%);
+    backdrop-filter:blur(22px) saturate(160%);
+    border:1px solid var(--border-glass);
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset, 0 18px 40px -18px var(--shadow);
+    position:relative;
+    isolation:isolate;
+  }
+  .glass::before{
+    content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    background:linear-gradient(120deg,rgba(255,255,255,.5),rgba(255,255,255,0) 30%);
+    opacity:.6;mix-blend-mode:overlay;
+  }
+  .glass-sheen{position:absolute;inset:0;border-radius:inherit;pointer-events:none;overflow:hidden;}
+  .glass-sheen::after{
+    content:"";position:absolute;top:-40%;left:-60%;width:60%;height:180%;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);
+    transform:rotate(8deg);
+    transition:left 1.1s cubic-bezier(.22,1,.36,1);
+  }
+  .glass-interactive:hover .glass-sheen::after,.glass-interactive:focus-visible .glass-sheen::after{left:140%;}
+
+  /* ============ LAYOUT ============ */
+  .wrap{max-width:720px;margin:0 auto;padding:0 16px calc(var(--nav-h) + 28px + env(safe-area-inset-bottom));}
+  header.topbar{
+    position:sticky;top:calc(10px + env(safe-area-inset-top));z-index:40;margin:10px auto 0;max-width:720px;
+    border-radius:var(--radius-xl);padding:9px 12px 9px 14px;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  .brand{display:flex;align-items:center;gap:8px;min-width:0;border:none;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent;}
+  .brand:active{transform:scale(.97);}
+  .brand svg{width:30px;height:30px;flex:none;}
+  .brand-name{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .header-right{display:flex;align-items:center;gap:8px;flex:none;}
+
+  .coin-pill{
+    display:flex;align-items:center;gap:7px;background:var(--surface-strong);
+    border:1px solid var(--border-glass);border-radius:var(--radius-pill);
+    padding:6px 12px 6px 7px;box-shadow:0 1px 0 rgba(255,255,255,.6) inset;
+  }
+  .coin-pill svg{width:23px;height:23px;}
+  .coin-pill .amt{font-family:"Space Mono";font-weight:700;font-size:15px;}
+  .coin-pill.pulse{animation:coinpulse .55s ease;}
+  @keyframes coinpulse{0%{transform:scale(1);}30%{transform:scale(1.14);}60%{transform:scale(.97);}100%{transform:scale(1);}}
+
+  .streak-pill{position:relative;display:flex;align-items:center;gap:5px;background:var(--surface-strong);border:1px solid var(--border-glass);border-radius:var(--radius-pill);padding:6px 11px;font-size:13px;font-weight:600;color:var(--coral-dark);}
+  .streak-pill.grow{animation:streakgrow .6s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes streakgrow{0%{transform:scale(1) rotate(0);}40%{transform:scale(1.25) rotate(-4deg);}70%{transform:scale(.95) rotate(2deg);}100%{transform:scale(1) rotate(0);}}
+  .streak-float{position:absolute;left:50%;top:-4px;transform:translate(-50%,0);font-size:12.5px;font-weight:800;color:var(--coral-dark);white-space:nowrap;pointer-events:none;animation:streakfloat 1.2s ease forwards;}
+  @keyframes streakfloat{0%{opacity:0;transform:translate(-50%,6px) scale(.8);}22%{opacity:1;transform:translate(-50%,-8px) scale(1.05);}100%{opacity:0;transform:translate(-50%,-36px) scale(1);}}
+
+  /* ============ PAGES ============ */
+  .page{display:none;}
+  .page.active{display:block;animation:pagein .32s cubic-bezier(.22,1,.36,1);}
+  @keyframes pagein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+  /* ============ HERO ============ */
+  .hero{margin-top:18px;border-radius:var(--radius-xl);padding:26px 24px;display:flex;align-items:center;gap:20px;overflow:hidden;}
+  .hero-copy{flex:1;min-width:0;}
+  .eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--kelp);background:var(--kelp-soft);padding:5px 12px;border-radius:var(--radius-pill);}
+  .hero h1{font-size:clamp(22px,6vw,30px);margin:12px 0 6px;}
+  .hero p{margin:0;color:var(--ink-soft);font-size:14.5px;line-height:1.5;}
+  .hero-name{color:var(--coral-dark);font-weight:700;}
+  .mascot-wrap{flex:none;width:96px;height:96px;position:relative;}
+  .mascot-wrap svg{width:100%;height:100%;filter:drop-shadow(0 14px 18px var(--shadow));animation:bob 4.5s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-1.5deg);}50%{transform:translateY(-9px) rotate(1.5deg);}}
+  @media (max-width:420px){
+    .hero{flex-direction:column;text-align:center;padding:24px 20px;}
+    .mascot-wrap{width:80px;height:80px;}
+  }
+  .quest-mascot{border:none;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+
+  /* speech bubble that pops up when the mascot is tapped */
+  .puffin-speech{
+    position:absolute;left:100%;top:50%;transform:translate(-6px,-50%) scale(.8);
+    margin-left:12px;white-space:nowrap;pointer-events:none;z-index:2;
+    background:var(--surface-strong);border:1px solid var(--border-glass);border-radius:var(--radius-pill);
+    padding:6px 14px;font-family:"Fredoka";font-weight:600;font-size:13.5px;color:var(--coral-dark);
+    box-shadow:0 10px 24px -10px var(--shadow-strong);
+    opacity:0;transition:opacity .3s cubic-bezier(.22,1,.36,1),transform .3s cubic-bezier(.22,1,.36,1);
+  }
+  .puffin-speech::after{
+    content:"";position:absolute;right:100%;top:50%;transform:translateY(-50%);
+    border:6px solid transparent;border-right-color:var(--surface-strong);
+  }
+  .puffin-speech.show{opacity:1;transform:translate(0,-50%) scale(1);}
+  .puffin-speech-left{left:auto;right:100%;margin-left:0;margin-right:12px;transform:translate(6px,-50%) scale(.8);}
+  .puffin-speech-left.show{transform:translate(0,-50%) scale(1);}
+  .puffin-speech-left::after{
+    left:100%;right:auto;
+    border-right-color:transparent;border-left-color:var(--surface-strong);
+  }
+
+  /* ============ SECTIONS ============ */
+  section.block{margin-top:34px;}
+  .block-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+  .block-head h2{font-size:19px;margin:0;display:flex;align-items:center;gap:8px;}
+  .block-head p{margin:2px 0 0;color:var(--ink-soft);font-size:13px;}
+  .block-tag{font-size:11.5px;font-weight:700;color:var(--ink-faint);font-family:"Space Mono";}
+
+  .quest-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
+  @media (max-width:480px){ .quest-grid{grid-template-columns:1fr;} }
+
+  .icon-chip{
+    width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    font-size:21px;background:var(--surface-strong);border:1px solid var(--border-glass);flex:none;
+  }
+
+  .qcard{
+    border-radius:var(--radius-lg);padding:16px;cursor:pointer;text-align:left;width:100%;
+    display:flex;flex-direction:column;gap:9px;color:inherit;
+    transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s;
+  }
+  .qcard:hover{transform:translateY(-4px) rotate(-.3deg);}
+  .qcard:active{transform:translateY(-1px) scale(.99);}
+  .qcard:focus-visible{outline:2px solid var(--coral);outline-offset:3px;}
+  .qcard .qtitle{font-family:"Fredoka";font-size:16px;font-weight:600;line-height:1.25;}
+  .qcard .qdesc{font-size:12.5px;color:var(--ink-soft);line-height:1.45;flex:1;}
+  .qcard-foot{display:flex;align-items:center;justify-content:space-between;margin-top:2px;}
+  .reward-chip{display:flex;align-items:center;gap:5px;font-family:"Space Mono";font-weight:700;font-size:13px;color:var(--coral-dark);}
+  .reward-chip svg{width:17px;height:17px;}
+  .status-chip{font-size:10.5px;font-weight:700;letter-spacing:.03em;padding:4px 9px;border-radius:var(--radius-pill);text-transform:uppercase;}
+  .status-new{background:var(--surface-strong);color:var(--ink-faint);}
+  .status-pending{background:var(--kelp-soft);color:var(--kelp);}
+  .status-done{background:#DCF3E7;color:#146B45;}
+  :root[data-theme="dark"] .status-done{background:#123A2A;color:#5CE3A6;}
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]) .status-done{background:#123A2A;color:#5CE3A6;}
+  }
+
+  .qcard.is-done{opacity:.75;}
+  .qcard.is-done .qtitle{text-decoration:line-through;text-decoration-color:var(--kelp);text-decoration-thickness:2px;}
+  .qcard.is-pending{opacity:.85;}
+
+  /* ============ REVIEW COVE (Tinder mode) ============ */
+  .cove-page-head{text-align:center;margin-top:18px;}
+  .cove-page-head h1{font-size:22px;margin:6px 0 4px;}
+  .cove-page-head p{margin:0 auto;max-width:44ch;color:var(--ink-soft);font-size:13.5px;line-height:1.5;}
+  .cove-progress{font-size:11.5px;color:var(--ink-faint);font-family:"Space Mono";text-align:center;margin-top:8px;}
+  .cove-deck{max-width:400px;margin:16px auto 0;}
+  .cove-stack{position:relative;height:270px;}
+  .cove-empty{text-align:center;padding:64px 10px;color:var(--ink-soft);font-size:13.5px;}
+  .stack-card{
+    position:absolute;inset:0;border-radius:var(--radius-lg);padding:18px;
+    display:flex;flex-direction:column;gap:10px;user-select:none;cursor:grab;
+  }
+  .stack-card:active{cursor:grabbing;}
+  .rcard-photo{border-radius:var(--radius-md);height:108px;display:flex;align-items:center;justify-content:center;font-size:36px;background:linear-gradient(135deg,var(--rc1,var(--kelp-soft)),var(--rc2,var(--surface-strong)));border:1px solid var(--border-glass);overflow:hidden;}
+  .rcard-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .rcard-meta{font-size:12px;color:var(--ink-faint);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .rcard-quest{font-family:"Fredoka";font-weight:600;font-size:14.5px;}
+  .rcard-caption{font-size:12.5px;color:var(--ink-soft);line-height:1.4;}
+  .stamp{position:absolute;top:16px;padding:6px 14px;border:3px solid;border-radius:10px;font-family:"Fredoka";font-weight:700;font-size:16px;text-transform:uppercase;opacity:0;pointer-events:none;letter-spacing:.02em;}
+  .stamp-approve{right:16px;color:var(--coral);border-color:var(--coral);transform:rotate(10deg);}
+  .stamp-skip{left:16px;color:var(--ink-faint);border-color:var(--ink-faint);transform:rotate(-10deg);}
+  .cove-comment-row{margin-top:16px;position:relative;max-width:400px;margin-left:auto;margin-right:auto;}
+  .cove-deck-actions{display:flex;gap:10px;margin-top:10px;max-width:400px;margin-left:auto;margin-right:auto;}
+  .rbtn{flex:1;border:none;border-radius:var(--radius-pill);padding:13px 10px;font-weight:700;font-size:13.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:transform .15s;}
+  .rbtn:active{transform:scale(.94);}
+  .rbtn-approve{background:var(--coral);color:#fff;}
+  .rbtn-skip{background:var(--surface-strong);color:var(--ink-soft);border:1px solid var(--border-glass);}
+  .cove-hint{text-align:center;font-size:11.5px;color:var(--ink-faint);margin-top:12px;}
+
+  /* ============ FIGHT ============ */
+  .fight-page-head{text-align:center;margin-top:18px;}
+  .fight-page-head h1{font-size:22px;margin:6px 0 4px;}
+  .fight-page-head p{margin:0 auto;max-width:44ch;color:var(--ink-soft);font-size:13.5px;line-height:1.5;}
+  .fight-grid{display:flex;flex-direction:column;gap:14px;margin-top:18px;}
+  .fight-card{border-radius:var(--radius-xl);padding:20px;}
+  .fight-head{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .fight-tag{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--kelp);background:var(--kelp-soft);padding:4px 10px;border-radius:var(--radius-pill);flex:none;}
+  .fight-reset{font-size:11px;color:var(--ink-faint);font-family:"Space Mono";text-align:right;}
+  .fight-name{font-size:18px;margin:12px 0 4px;}
+  .fight-desc{margin:0;color:var(--ink-soft);font-size:13px;}
+  .fight-bar-track{height:12px;border-radius:999px;background:var(--surface-soft);border:1px solid var(--border-glass);overflow:hidden;margin-top:16px;}
+  .fight-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--coral));border-radius:inherit;transition:width .6s cubic-bezier(.22,1,.36,1);}
+  .fight-foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px;}
+  .fight-count{font-size:12.5px;color:var(--ink-soft);}
+  .fight-claim{width:100%;margin-top:14px;}
+
+  /* ============ FISH ============ */
+  .fish-page-head{text-align:center;margin-top:18px;}
+  .fish-page-head h1{font-size:22px;margin:6px 0 4px;}
+  .fish-page-head p{margin:0 auto;max-width:44ch;color:var(--ink-soft);font-size:13.5px;line-height:1.5;}
+  .fish-pond{border-radius:var(--radius-xl);padding:26px 20px;margin-top:18px;text-align:center;}
+  .fish-cost{font-size:12.5px;color:var(--ink-faint);margin-top:8px;}
+  .fish-stage{min-height:140px;display:flex;align-items:center;justify-content:center;margin:16px 0;}
+  .fish-waiting{font-size:15px;color:var(--ink-soft);font-family:"Fredoka";font-weight:600;animation:fishwait 1.2s ease-in-out infinite;}
+  @keyframes fishwait{0%,100%{opacity:.5;transform:translateY(0);}50%{opacity:1;transform:translateY(-4px);}}
+  .catch-card{border-radius:var(--radius-lg);padding:22px;text-align:center;width:100%;max-width:300px;margin:0 auto;background:var(--surface-strong);border:1px solid var(--border-glass);animation:cel-pop .5s cubic-bezier(.34,1.56,.64,1);}
+  .catch-icon{font-size:44px;line-height:1;}
+  .catch-label{font-family:"Fredoka";font-weight:600;font-size:16.5px;margin-top:8px;}
+  .catch-detail{font-size:12.5px;color:var(--ink-soft);margin-top:4px;}
+  .catch-card.rarity-uncommon{box-shadow:0 0 0 2px var(--kelp) inset;}
+  .catch-card.rarity-rare{box-shadow:0 0 0 2px var(--coral) inset;}
+  .catch-card.rarity-legendary{box-shadow:0 0 0 3px var(--gold) inset,0 0 30px -4px var(--gold);}
+  .fish-cast-btn{width:100%;max-width:300px;}
+  .fish-section-title{font-size:12.5px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin:8px 0 10px;}
+  .fish-block{margin-top:26px;}
+  .badge-case{display:flex;flex-wrap:wrap;gap:8px;}
+  .badge-chip{width:42px;height:42px;border-radius:14px;background:var(--surface-soft);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;font-size:21px;}
+  .title-list{display:flex;flex-wrap:wrap;gap:8px;}
+  .title-chip{padding:8px 14px;border-radius:var(--radius-pill);background:var(--surface-soft);border:1px solid var(--border-glass);font-size:12.5px;font-weight:700;cursor:pointer;color:var(--ink-soft);transition:transform .15s;}
+  .title-chip:active{transform:scale(.95);}
+  .title-chip.equipped{background:var(--coral);color:#fff;border-color:var(--coral);}
+  .fish-empty{text-align:center;color:var(--ink-faint);font-size:12.5px;padding:12px 0;}
+  .catch-log{display:flex;flex-direction:column;gap:6px;}
+  .catch-log-row{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--ink-soft);background:var(--surface-soft);border:1px solid var(--border-glass);border-radius:var(--radius-md);padding:8px 12px;}
+  .catch-log-row .icon{font-size:17px;flex:none;}
+  .catch-log-row .detail{margin-left:auto;font-family:"Space Mono";font-size:11px;color:var(--coral-dark);flex:none;}
+
+  /* ============ BUTTONS ============ */
+  .btn{
+    border:none;border-radius:var(--radius-pill);padding:13px 22px;font-weight:700;font-size:14px;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s,box-shadow .15s;
+  }
+  .btn-primary{background:linear-gradient(135deg,var(--coral),var(--coral-dark));color:#fff;box-shadow:0 10px 20px -10px var(--coral-dark);}
+  .btn-primary:hover{transform:translateY(-2px);}
+  .btn-primary:active{transform:translateY(0) scale(.97);}
+  .btn-ghost{background:var(--surface-strong);border:1px solid var(--border-glass);color:var(--ink);}
+  .btn-ghost:hover{transform:translateY(-2px);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+  .btn-sm{padding:8px 16px;font-size:12.5px;}
+
+  /* ============ BOTTOM NAV ============ */
+  .bottom-nav{
+    position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:60;
+    display:flex;justify-content:space-around;align-items:stretch;
+    padding:6px;border-radius:26px;max-width:696px;margin:0 auto;
+  }
+  .nav-btn{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    background:none;border:none;cursor:pointer;padding:9px 2px;border-radius:18px;color:var(--ink-faint);
+    transition:transform .2s,color .2s,background .2s;min-width:0;
+  }
+  .nav-btn .nav-icon{font-size:21px;line-height:1;transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
+  .nav-btn .nav-label{font-size:10px;font-weight:700;letter-spacing:.02em;}
+  .nav-btn.active{color:var(--coral-dark);background:var(--surface-strong);}
+  .nav-btn.active .nav-icon{transform:translateY(-1px) scale(1.15);}
+  .nav-btn:active{transform:scale(.92);}
+
+  /* ============ INPUTS ============ */
+  .glass-input{width:100%;border:1px solid var(--border-glass);border-radius:var(--radius-md);background:var(--surface-soft);color:var(--ink);padding:10px 44px 10px 14px;font-size:13.5px;font-family:inherit;outline:none;transition:border-color .2s,background .2s;}
+  .glass-input:focus{border-color:var(--coral);background:var(--surface-strong);}
+  .glass-input::placeholder{color:var(--ink-faint);}
+  .glass-input.no-count{padding-right:14px;}
+  .char-count{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:10.5px;color:var(--ink-faint);font-family:"Space Mono";pointer-events:none;}
+  .caption-row{margin-top:12px;position:relative;}
+
+  /* ============ MODAL (shared) ============ */
+  .modal-overlay{
+    position:fixed;inset:0;z-index:100;display:flex;align-items:flex-end;justify-content:center;
+    background:rgba(8,26,33,.4);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+    opacity:0;pointer-events:none;transition:opacity .3s;
+  }
+  @media (min-width:640px){.modal-overlay{align-items:center;padding:24px;}}
+  .modal-overlay.open{opacity:1;pointer-events:auto;}
+  .modal{
+    width:100%;max-width:460px;max-height:88vh;overflow-y:auto;border-radius:28px 28px 0 0;padding:24px 20px calc(26px + env(safe-area-inset-bottom));
+    background:var(--surface-strong);-webkit-backdrop-filter:blur(28px) saturate(170%);backdrop-filter:blur(28px) saturate(170%);
+    border:1px solid var(--border-glass);box-shadow:0 -10px 50px var(--shadow-strong);
+    transform:translateY(24px) scale(.98);transition:transform .38s cubic-bezier(.22,1,.36,1);
+  }
+  @media (min-width:640px){.modal{border-radius:28px;padding:26px 24px 30px;}}
+  .modal-overlay.open .modal{transform:translateY(0) scale(1);}
+  .modal-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .modal-close{background:var(--surface);border:1px solid var(--border-glass);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:16px;color:var(--ink-soft);flex:none;}
+  .modal h3{font-size:20px;margin:14px 0 6px;}
+  .modal .qdesc-full{color:var(--ink-soft);font-size:13.5px;line-height:1.6;margin:0 0 16px;}
+  .modal-reward{display:flex;align-items:center;gap:8px;margin-bottom:18px;}
+  .modal-reward svg{width:22px;height:22px;}
+  .modal-reward span{font-family:"Space Mono";font-weight:700;color:var(--coral-dark);}
+
+  .dropzone{
+    border:2px dashed var(--border-glass);border-radius:var(--radius-lg);padding:20px;text-align:center;cursor:pointer;
+    background:var(--surface-soft);transition:border-color .2s,background .2s;
+  }
+  .dropzone:hover,.dropzone.drag{border-color:var(--coral);background:var(--kelp-soft);}
+  .dropzone svg{width:28px;height:28px;margin-bottom:6px;color:var(--ink-faint);}
+  .dropzone p{margin:0;font-size:12.5px;color:var(--ink-soft);}
+  .dropzone .dz-sub{font-size:11px;color:var(--ink-faint);margin-top:3px;}
+  .preview-wrap{position:relative;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border-glass);}
+  .preview-wrap img{display:block;width:100%;max-height:220px;object-fit:cover;}
+  .preview-remove{position:absolute;top:8px;right:8px;background:rgba(8,26,33,.6);color:#fff;border:none;width:30px;height:30px;border-radius:50%;cursor:pointer;}
+
+  .modal-actions{display:flex;gap:10px;margin-top:16px;}
+  .modal-actions .btn{flex:1;}
+  .share-row{display:flex;align-items:center;justify-content:center;margin-top:10px;}
+  .share-link-btn{background:none;border:none;color:var(--kelp);font-size:12.5px;font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:6px;}
+
+  .celebrate{text-align:center;padding:6px 0 4px;}
+  .celebrate svg{width:66px;height:66px;animation:cel-pop .6s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes cel-pop{0%{transform:scale(.3) rotate(-8deg);opacity:0;}60%{transform:scale(1.12) rotate(4deg);opacity:1;}100%{transform:scale(1) rotate(0);}}
+  .celebrate h4{margin:10px 0 2px;font-size:18px;}
+  .celebrate p{margin:0;color:var(--ink-soft);font-size:13.5px;}
+
+  /* ============ AUTH ============ */
+  .welcome-modal{max-width:380px;text-align:center;}
+  .welcome-mascot{width:76px;height:76px;margin-bottom:4px;animation:bob 4.5s ease-in-out infinite;}
+  .auth-form{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+  .auth-error{background:#FBE0E0;color:#8C2E17;font-size:12.5px;font-weight:600;padding:9px 12px;border-radius:var(--radius-md);margin-top:14px;text-align:left;}
+  :root[data-theme="dark"] .auth-error{background:#3A1414;color:#FFB199;}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .auth-error{background:#3A1414;color:#FFB199;}}
+  .auth-switch{margin-top:14px;font-size:12.5px;color:var(--ink-soft);text-align:center;}
+  .auth-switch button{background:none;border:none;color:var(--coral-dark);font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:2px;padding:0;font-size:inherit;}
+  .social-confirm-row{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-soft);cursor:pointer;text-align:left;margin-top:2px;}
+  .social-confirm-row input{accent-color:var(--coral);width:15px;height:15px;flex:none;}
+  .social-choice-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px;}
+  .social-choice{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);cursor:pointer;background:var(--surface-soft);border:1px solid var(--border-glass);border-radius:var(--radius-pill);padding:6px 12px;}
+  .social-choice input{accent-color:var(--coral);width:14px;height:14px;}
+
+  /* ============ SOCIAL LINK ICONS (profile + cove cards) ============ */
+  .social-icons{display:flex;gap:6px;flex-wrap:wrap;}
+  .social-icon-link{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;background:var(--surface-strong);border:1px solid var(--border-glass);text-decoration:none;transition:transform .15s;flex:none;}
+  .social-icon-link:hover{transform:translateY(-2px) scale(1.08);}
+  .profile-cover .social-icon-link{background:rgba(255,255,255,.24);border-color:rgba(255,255,255,.45);}
+
+  /* ============ PROFILE (shared by Bird tab + shared-link overlay) ============ */
+  .profile-modal{max-width:520px;}
+
+  .profile-cover{
+    position:relative;overflow:hidden;border-radius:var(--radius-xl);
+    min-height:168px;padding:16px;margin-top:16px;
+    display:flex;flex-direction:column;justify-content:flex-end;
+    background-size:cover;background-position:center;
+    border:1px solid var(--border-glass);
+    box-shadow:0 18px 40px -18px var(--shadow);
+    color:#fff;
+  }
+  .profile-cover::before{
+    content:"";position:absolute;inset:0;z-index:0;
+    background:linear-gradient(180deg, rgba(8,26,33,.1) 0%, rgba(8,26,33,.64) 100%);
+  }
+  .profile-cover.no-photo{
+    background-image:
+      radial-gradient(circle at 18% 18%, rgba(255,201,77,.55), transparent 55%),
+      radial-gradient(circle at 85% 10%, rgba(255,107,74,.55), transparent 50%),
+      radial-gradient(circle at 60% 96%, rgba(27,107,99,.55), transparent 55%),
+      linear-gradient(160deg,#1B4B4F,#123138);
+  }
+  .profile-cover.no-photo::before{ background:rgba(8,26,33,.3); }
+  .profile-cover > *{ position:relative; z-index:1; }
+  .profile-cover .profile-sub{color:rgba(255,255,255,.85);}
+  .profile-cover .profile-title-chip{background:rgba(255,255,255,.24);color:#fff;}
+  .profile-cover .profile-edit-btn{color:#fff;opacity:.8;}
+  .profile-cover .profile-edit-btn:hover{opacity:1;}
+
+  .cover-share-btn{
+    position:absolute;top:14px;right:14px;z-index:2;
+    width:36px;height:36px;border-radius:50%;padding:0;
+    background:rgba(255,255,255,.22);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.45);color:#fff;font-size:15px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .cover-share-btn:active{transform:scale(.92);}
+
+  .cover-id{display:flex;align-items:center;gap:12px;}
+  .cover-avatar-wrap{
+    width:52px;height:52px;border-radius:50%;flex:none;
+    background:rgba(255,255,255,.92);border:2px solid rgba(255,255,255,.85);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 14px rgba(0,0,0,.28);
+    overflow:hidden;
+  }
+  .cover-avatar-wrap svg{width:36px;height:36px;}
+  .cover-avatar-wrap img{width:100%;height:100%;object-fit:cover;}
+  .cover-id-text{min-width:0;}
+
+  .profile-username-row{display:flex;align-items:center;gap:6px;min-width:0;}
+  .profile-username-row h2,.profile-username-row h3{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;font-size:19px;}
+  .profile-edit-btn{background:none;border:none;cursor:pointer;font-size:14px;opacity:.65;padding:4px;flex:none;}
+  .profile-edit-btn:hover{opacity:1;}
+  .profile-sub{font-size:12px;color:var(--ink-faint);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .profile-title-chip{font-size:10.5px;font-weight:700;color:var(--coral-dark);background:var(--kelp-soft);padding:2px 8px;border-radius:var(--radius-pill);}
+  .profile-title-chip:empty{display:none;}
+  .profile-social-row{margin-top:8px;}
+  .profile-edit-row{display:none;flex-direction:column;gap:16px;margin-top:14px;}
+  .profile-edit-row .edit-name-row{display:flex;gap:8px;}
+  .profile-edit-row .edit-name-row input{flex:1;}
+
+  .edit-photos-row{display:flex;gap:20px;flex-wrap:wrap;}
+  .edit-photo-field{display:flex;flex-direction:column;align-items:flex-start;gap:7px;}
+  .edit-photo-label{font-size:10.5px;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em;}
+  .edit-photo-pick{position:relative;border:none;padding:0;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent;display:block;}
+  .edit-photo-pick:active{transform:scale(.96);}
+  .edit-photo-preview{display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;background:var(--surface-strong);border:2px dashed var(--border-glass);overflow:hidden;color:var(--ink-faint);}
+  .edit-photo-preview svg{width:34px;height:34px;}
+  .edit-photo-preview img{width:100%;height:100%;object-fit:cover;display:block;}
+  .edit-photo-preview.cover-preview{border-radius:14px;width:104px;height:64px;background-size:cover;background-position:center;background-color:var(--kelp-soft);}
+  .edit-photo-pencil{position:absolute;bottom:-2px;right:-2px;width:22px;height:22px;border-radius:50%;background:var(--coral);color:#fff;font-size:10.5px;display:flex;align-items:center;justify-content:center;border:2px solid var(--surface-strong);}
+  .edit-photo-remove{background:none;border:none;color:var(--coral-dark);font-size:11px;font-weight:700;cursor:pointer;padding:2px;text-decoration:underline;text-underline-offset:2px;}
+
+  .edit-social-field{display:flex;flex-direction:column;align-items:flex-start;gap:7px;}
+
+  .profile-shared-banner{
+    display:none;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    background:var(--kelp-soft);border-radius:var(--radius-md);padding:10px 14px;margin-top:16px;
+    font-size:12.5px;color:var(--kelp);font-weight:700;
+  }
+  .profile-shared-banner.always{display:flex;}
+
+  /* stats sit as a normal card below the cover */
+  .profile-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0 0;border-radius:var(--radius-lg);padding:16px 10px;}
+  .stat-tile{background:var(--surface-soft);border:1px solid var(--border-glass);border-radius:var(--radius-md);padding:11px 5px;text-align:center;}
+  .stat-num{font-family:"Space Mono";font-weight:700;font-size:18px;}
+  .stat-label{font-size:9.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em;margin-top:3px;}
+  @media (max-width:360px){ .stat-num{font-size:16px;} .stat-label{font-size:8.5px;} }
+
+  .journal-list{margin-top:20px;display:flex;flex-direction:column;}
+  .journal-row{display:flex;gap:14px;padding:18px 0;border-top:1px solid var(--border-glass);}
+  .journal-row:first-child{border-top:none;}
+  .jr-date{flex:none;width:60px;}
+  .jr-day{font-family:"Fredoka";font-size:27px;font-weight:600;line-height:1;color:var(--ink);}
+  .jr-month{font-family:"Fredoka";font-size:12px;font-weight:600;color:var(--ink-soft);margin-top:1px;}
+  .jr-meta{font-size:9.5px;color:var(--ink-faint);margin-top:7px;line-height:1.45;}
+  .jr-photo{flex:none;width:80px;height:80px;border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border-glass);background:var(--surface-soft);display:flex;align-items:center;justify-content:center;font-size:28px;}
+  .jr-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .jr-body{flex:1;min-width:0;padding-top:2px;}
+  .jr-title{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-family:"Fredoka";font-weight:600;font-size:14.5px;}
+  .jr-reward{font-family:"Space Mono";color:var(--coral-dark);font-weight:700;font-size:11.5px;flex:none;}
+  .jr-caption{margin-top:5px;font-size:12.5px;color:var(--ink-soft);line-height:1.5;font-style:italic;}
+  .jr-reactions{margin-top:8px;display:flex;flex-direction:column;gap:4px;}
+  .jr-reaction{display:flex;flex-wrap:wrap;gap:5px;font-size:11.5px;background:var(--surface-soft);border:1px solid var(--border-glass);border-radius:var(--radius-sm);padding:6px 9px;}
+  .jr-reaction-comment{color:var(--ink-soft);font-style:italic;}
+  .journal-truncated-note{font-size:11.5px;color:var(--ink-faint);text-align:center;padding-top:14px;}
+
+  /* ============ TOASTS ============ */
+  #toast-root{position:fixed;bottom:calc(var(--nav-h) + 18px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column-reverse;gap:8px;align-items:center;pointer-events:none;}
+  .toast{
+    background:var(--surface-strong);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+    border:1px solid var(--border-glass);border-radius:var(--radius-pill);padding:10px 18px;font-size:13px;font-weight:600;
+    box-shadow:0 10px 30px -10px var(--shadow-strong);opacity:0;transform:translateY(10px) scale(.95);transition:all .35s cubic-bezier(.22,1,.36,1);
+    display:flex;align-items:center;gap:8px;max-width:min(86vw,360px);
+  }
+  .toast span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .toast.show{opacity:1;transform:translateY(0) scale(1);}
+
+  #confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:150;}
+
+  .visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+</style>
+</head>
+<body>
+
+<div class="scene" aria-hidden="true">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+</div>
+
+<!-- reusable icons -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-puffin" viewBox="0 0 64 64">
+    <ellipse cx="32" cy="36" rx="21" ry="23" fill="#16262C"/>
+    <ellipse cx="32" cy="40" rx="13" ry="15" fill="#F8F3E7"/>
+    <path d="M11 32 C11 20, 20 11, 32 11 C44 11, 53 20, 53 32 C46 26, 39 23, 32 23 C25 23, 18 26, 11 32 Z" fill="#16262C"/>
+    <path d="M14 30 Q10 24 15 18 Q20 22 18 29 Z" fill="var(--coral,#FF6B4A)"/>
+    <path d="M50 30 Q54 24 49 18 Q44 22 46 29 Z" fill="var(--coral,#FF6B4A)"/>
+    <path d="M24 33 Q32 29 40 33 L38 40 Q32 43 26 40 Z" fill="var(--gold,#FFC94D)"/>
+    <path d="M22 33 Q32 27 42 33 Q40 27 32 25 Q24 27 22 33 Z" fill="var(--coral,#FF6B4A)"/>
+    <line x1="32" y1="33" x2="32" y2="40" stroke="#16262C" stroke-width="1"/>
+    <circle cx="24" cy="26" r="4.6" fill="#fff"/>
+    <circle cx="40" cy="26" r="4.6" fill="#fff"/>
+    <circle cx="24.5" cy="26.5" r="2.1" fill="#16262C"/>
+    <circle cx="40.5" cy="26.5" r="2.1" fill="#16262C"/>
+  </symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13.5" r="3.4"/>
+  </symbol>
+</svg>
+
+<div id="app-shell" style="display:none;">
+<header class="topbar glass">
+  <button class="brand" id="brand-btn" type="button" aria-label="About Puffin Quest">
+    <svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>
+    <div class="brand-name">Puffin Quest</div>
+  </button>
+  <div class="header-right">
+    <div class="streak-pill" id="streak-pill" title="Daily streak">🔥 <span id="streak-val">0</span></div>
+    <div class="coin-pill" id="coin-pill" title="Puffins">
+      <svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>
+      <span class="amt" id="coin-amt">0</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ======= QUEST PAGE ======= -->
+  <section class="page active" data-page="quest" id="page-quest">
+    <section class="hero glass">
+      <div class="hero-copy">
+        <span class="eyebrow">Today · <span id="today-date"></span></span>
+        <h1>Waddle up, <span class="hero-name" id="player-name">Puffineer</span>.</h1>
+        <p id="hero-blurb">Real quests, snapped and reviewed by real puffineers. Photos and captions are optional bonus Puffins.</p>
+      </div>
+      <button class="mascot-wrap quest-mascot" id="quest-mascot" type="button" aria-label="Say hi to the puffin family">
+        <svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>
+        <div class="puffin-speech puffin-speech-left" id="quest-puffin-speech">Hi! 👋</div>
+      </button>
+    </section>
+
+    <section class="block" id="daily">
+      <div class="block-head">
+        <h2>🌤️ Today's Quests</h2>
+        <p class="block-tag" id="daily-progress">0/3 done</p>
+      </div>
+      <div class="quest-grid" id="daily-grid"></div>
+    </section>
+
+    <section class="block" id="fun">
+      <div class="block-head">
+        <div>
+          <h2>✨ Cool &amp; Fun Quests</h2>
+          <p>One-off adventures, worth extra Puffins. No rush — they don't expire.</p>
+        </div>
+      </div>
+      <div class="quest-grid" id="fun-grid"></div>
+    </section>
+  </section>
+
+  <!-- ======= COVE PAGE ======= -->
+  <section class="page" data-page="cove" id="page-cove">
+    <div class="cove-page-head">
+      <h1>🫧 Review Cove</h1>
+      <p>Swipe right to approve a fellow puffineer's photo (and cheer them on), left to skip. Every approval earns you a little bonus too.</p>
+    </div>
+    <p class="cove-progress" id="cove-progress"></p>
+    <div class="cove-deck">
+      <div class="cove-stack" id="cove-stack"></div>
+      <div class="cove-comment-row">
+        <input type="text" id="cove-comment-input" class="glass-input" maxlength="50" placeholder="Cheer them on (optional)" />
+        <span class="char-count" id="cove-comment-count">0/50</span>
+      </div>
+      <div class="cove-deck-actions">
+        <button class="rbtn rbtn-skip" id="cove-skip-btn" type="button">✕ Skip</button>
+        <button class="rbtn rbtn-approve" id="cove-approve-btn" type="button">👍 Approve</button>
+      </div>
+      <p class="cove-hint">Drag the card, or use the buttons</p>
+    </div>
+  </section>
+
+  <!-- ======= FIGHT PAGE ======= -->
+  <section class="page" data-page="fight" id="page-fight">
+    <div class="fight-page-head">
+      <h1>⚔️ Fight for Puffins</h1>
+      <p>Time-boxed challenges. Fill the bar before it resets to win a bonus haul of Puffins.</p>
+    </div>
+    <div class="fight-grid" id="fight-list"></div>
+  </section>
+
+  <!-- ======= FISH PAGE ======= -->
+  <section class="page" data-page="fish" id="page-fish">
+    <div class="fish-page-head">
+      <h1>🎣 The Fishing Hole</h1>
+      <p>Spend Puffins to cast a line for bonus coins, badges, and collectible titles.</p>
+    </div>
+    <div class="fish-pond glass">
+      <div class="fish-stage" id="fish-stage">
+        <button class="btn btn-primary fish-cast-btn" id="fish-cast-btn" type="button">🎣 Cast Line</button>
+      </div>
+      <p class="fish-cost" id="fish-cost-label">Costs 15 Puffins per cast</p>
+    </div>
+
+    <div class="fish-block">
+      <h3 class="fish-section-title">Titles</h3>
+      <div class="title-list" id="title-list"></div>
+    </div>
+    <div class="fish-block">
+      <h3 class="fish-section-title">Badge Case</h3>
+      <div class="badge-case" id="badge-case"></div>
+    </div>
+    <div class="fish-block">
+      <h3 class="fish-section-title">Recent Catches</h3>
+      <div class="catch-log" id="catch-log"></div>
+    </div>
+  </section>
+
+  <!-- ======= BIRD (PROFILE) PAGE ======= -->
+  <section class="page" data-page="bird" id="page-bird">
+    <div class="profile-cover no-photo">
+      <button class="cover-share-btn" type="button" aria-label="Copy my profile link" title="Copy my profile link">🔗</button>
+      <div class="cover-id">
+        <div class="cover-avatar-wrap"><svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg></div>
+        <div class="cover-id-text">
+          <div class="profile-username-row">
+            <h2 class="profile-username">Puffineer</h2>
+            <button class="profile-edit-btn" type="button" aria-label="Edit profile">✏️</button>
+          </div>
+          <div class="profile-sub"><span class="profile-title-chip"></span><span class="profile-since">Puffineer since —</span></div>
+          <div class="profile-social-row social-icons" id="bird-social-icons"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile-edit-row" id="bird-edit-row">
+      <div class="edit-photos-row">
+        <div class="edit-photo-field">
+          <span class="edit-photo-label">Profile photo</span>
+          <button class="edit-photo-pick" id="avatar-pick-btn" type="button" aria-label="Change profile photo">
+            <span class="edit-photo-preview" id="avatar-edit-preview"><svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg></span>
+            <span class="edit-photo-pencil">✏️</span>
+          </button>
+          <input type="file" id="avatar-file-input" accept="image/*" class="visually-hidden" />
+          <button class="edit-photo-remove" id="avatar-remove-btn" type="button" style="display:none;">Remove</button>
+        </div>
+        <div class="edit-photo-field">
+          <span class="edit-photo-label">Cover background</span>
+          <button class="edit-photo-pick" id="cover-pick-btn" type="button" aria-label="Change cover background">
+            <span class="edit-photo-preview cover-preview" id="cover-edit-preview"></span>
+            <span class="edit-photo-pencil">✏️</span>
+          </button>
+          <input type="file" id="cover-file-input" accept="image/*" class="visually-hidden" />
+          <button class="edit-photo-remove" id="cover-remove-btn" type="button" style="display:none;">Remove</button>
+        </div>
+        <div class="edit-social-field">
+          <span class="edit-photo-label">Social accounts</span>
+          <div class="social-choice-row">
+            <label class="social-choice"><input type="checkbox" id="edit-social-facebook" /> <span>📘 Facebook</span></label>
+            <label class="social-choice"><input type="checkbox" id="edit-social-instagram" /> <span>📸 Instagram</span></label>
+            <label class="social-choice"><input type="checkbox" id="edit-social-linkedin" /> <span>💼 LinkedIn</span></label>
+          </div>
+        </div>
+      </div>
+      <div class="edit-name-row">
+        <input type="text" class="glass-input no-count profile-name-input" maxlength="24" placeholder="Your puffineer name" />
+        <button class="btn btn-primary btn-sm profile-name-save" type="button">Save</button>
+      </div>
+    </div>
+
+    <div class="profile-stats glass">
+      <div class="stat-tile"><div class="stat-num stat-balance">0</div><div class="stat-label">Puffins</div></div>
+      <div class="stat-tile"><div class="stat-num stat-streak">0</div><div class="stat-label">Streak</div></div>
+      <div class="stat-tile"><div class="stat-num stat-best">0</div><div class="stat-label">Best streak</div></div>
+      <div class="stat-tile"><div class="stat-num stat-count">0</div><div class="stat-label">Quests done</div></div>
+    </div>
+
+    <div class="journal-list" id="bird-journal-list"></div>
+
+    <div class="share-row" style="margin-top:22px;">
+      <button class="share-link-btn" id="logout-btn" type="button">Log out</button>
+    </div>
+  </section>
+
+</main>
+
+<nav class="bottom-nav glass" id="bottom-nav">
+  <button class="nav-btn active" data-page="quest" type="button"><span class="nav-icon">🧭</span><span class="nav-label">Quest</span></button>
+  <button class="nav-btn" data-page="cove" type="button"><span class="nav-icon">🫧</span><span class="nav-label">Cove</span></button>
+  <button class="nav-btn" data-page="fight" type="button"><span class="nav-icon">⚔️</span><span class="nav-label">Fight</span></button>
+  <button class="nav-btn" data-page="fish" type="button"><span class="nav-icon">🎣</span><span class="nav-label">Fish</span></button>
+  <button class="nav-btn" data-page="bird" type="button"><span class="nav-icon">🐦</span><span class="nav-label">Bird</span></button>
+</nav>
+
+<!-- Quest modal -->
+<div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal" id="modal">
+    <div class="modal-top">
+      <div class="icon-chip" id="modal-icon" style="font-size:24px;">🥦</div>
+      <button class="modal-close" id="modal-close" aria-label="Close" type="button">✕</button>
+    </div>
+    <h3 id="modal-title">Quest title</h3>
+    <p class="qdesc-full" id="modal-desc">Quest description</p>
+    <div class="modal-reward">
+      <svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>
+      <span id="modal-reward-amt">+10 Puffins</span>
+    </div>
+
+    <div id="modal-body-idle">
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload a photo for this quest (optional)">
+        <svg viewBox="0 0 24 24"><use href="#i-camera"/></svg>
+        <p>Tap to snap or upload a photo (optional)</p>
+        <p class="dz-sub">Add a photo for +2 bonus Puffins</p>
+      </div>
+      <input type="file" id="file-input" accept="image/*" capture="environment" class="visually-hidden" />
+      <div id="preview-holder"></div>
+      <div class="caption-row">
+        <input type="text" id="caption-input" class="glass-input" maxlength="50" placeholder="Add a note for your journey (optional, +1 bonus)" />
+        <span class="char-count" id="caption-count">0/50</span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="submit-btn" type="button">Submit to the Cove</button>
+      </div>
+    </div>
+
+    <div id="modal-body-pending" style="display:none;" class="celebrate">
+      <svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>
+      <h4>Sent to the Cove!</h4>
+      <p id="pending-msg">Waiting for real puffineers to review it.</p>
+      <div class="modal-actions"><button class="btn btn-ghost" id="pending-close-btn" type="button" style="width:100%;">Got it</button></div>
+    </div>
+
+    <div id="modal-body-done" style="display:none;" class="celebrate">
+      <svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>
+      <h4>Approved by the Cove!</h4>
+      <p id="done-msg">You earned 10 Puffins.</p>
+      <div class="modal-actions"><button class="btn btn-ghost" id="done-close-btn" type="button" style="width:100%;">Nice</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Shared (read-only) profile overlay, for ?u= links from other puffineers -->
+<div class="modal-overlay" id="shared-profile-overlay" role="dialog" aria-modal="true" aria-labelledby="shared-profile-title">
+  <div class="modal profile-modal" id="shared-profile-modal">
+    <div class="modal-top" style="justify-content:flex-end;">
+      <button class="modal-close" id="shared-profile-close" aria-label="Close" type="button">✕</button>
+    </div>
+
+    <div class="profile-cover no-photo">
+      <div class="cover-id">
+        <div class="cover-avatar-wrap"><svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg></div>
+        <div class="cover-id-text">
+          <div class="profile-username-row">
+            <h3 id="shared-profile-title" class="profile-username">Puffineer</h3>
+          </div>
+          <div class="profile-sub"><span class="profile-title-chip"></span><span class="profile-since">Puffineer since —</span></div>
+          <div class="profile-social-row social-icons" id="shared-social-icons"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile-stats glass">
+      <div class="stat-tile"><div class="stat-num stat-balance">0</div><div class="stat-label">Puffins</div></div>
+      <div class="stat-tile"><div class="stat-num stat-streak">0</div><div class="stat-label">Streak</div></div>
+      <div class="stat-tile"><div class="stat-num stat-best">0</div><div class="stat-label">Best streak</div></div>
+      <div class="stat-tile"><div class="stat-num stat-count">0</div><div class="stat-label">Quests done</div></div>
+    </div>
+
+    <div class="profile-shared-banner always">
+      <span class="profile-shared-text">You're viewing a puffineer's journey.</span>
+      <button class="btn btn-ghost btn-sm" id="shared-start-own-btn" type="button">Go to my journey</button>
+    </div>
+
+    <div class="journal-list" id="shared-journal-list"></div>
+  </div>
+</div>
+
+</div><!-- /app-shell -->
+
+<!-- Auth overlay: login / register, shown until a valid session exists -->
+<div class="modal-overlay open" id="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+  <div class="modal welcome-modal" id="auth-modal">
+    <svg class="welcome-mascot" viewBox="0 0 64 64"><use href="#i-puffin"/></svg>
+    <h3 id="auth-title">Welcome to Puffin Quest</h3>
+    <p class="qdesc-full" id="auth-subtitle">Sign in to your flock, or create a new puffineer account.</p>
+
+    <div id="auth-error" class="auth-error" style="display:none;"></div>
+
+    <form id="auth-form-login" class="auth-form">
+      <input type="text" id="login-username" class="glass-input no-count" placeholder="Username" autocomplete="username" />
+      <input type="password" id="login-password" class="glass-input no-count" placeholder="Password" autocomplete="current-password" />
+      <button class="btn btn-primary" type="submit" style="width:100%;">Log in</button>
+    </form>
+
+    <form id="auth-form-register" class="auth-form" style="display:none;">
+      <input type="text" id="register-username" class="glass-input no-count" placeholder="Choose a username (3-20 chars)" autocomplete="username" maxlength="20" />
+      <input type="password" id="register-password" class="glass-input no-count" placeholder="Choose a password (6+ characters)" autocomplete="new-password" />
+      <label class="social-confirm-row">
+        <input type="checkbox" id="social-confirm-checkbox" />
+        <span>This username is also my social media handle</span>
+      </label>
+      <div class="social-choice-row" id="social-choice-row" style="display:none;">
+        <label class="social-choice"><input type="checkbox" data-platform="facebook" /> <span>📘 Facebook</span></label>
+        <label class="social-choice"><input type="checkbox" data-platform="instagram" /> <span>📸 Instagram</span></label>
+        <label class="social-choice"><input type="checkbox" data-platform="linkedin" /> <span>💼 LinkedIn</span></label>
+      </div>
+      <button class="btn btn-primary" type="submit" style="width:100%;">Create account</button>
+    </form>
+
+    <p class="auth-switch">
+      <span id="auth-switch-to-register">New here? <button type="button" id="show-register-btn">Create an account</button></span>
+      <span id="auth-switch-to-login" style="display:none;">Already have an account? <button type="button" id="show-login-btn">Log in</button></span>
+    </p>
+  </div>
+</div>
+
+<div id="toast-root" aria-live="polite"></div>
+<canvas id="confetti-canvas"></canvas>
+
+<script src="/app.js"></script>
+</body>
+</html>

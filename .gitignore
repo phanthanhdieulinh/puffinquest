@@ -1,0 +1,11 @@
+# Unrelated local tooling — not part of the Puffin Quest project
+.claude/
+liquid-glass-skill-main/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Env
+.env
+.env.local
