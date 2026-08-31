@@ -1290,7 +1290,6 @@
   const birdMatch = initialPath.match(/^\/bird\/([^/]+)\/?$/);
   const reviewMatch = initialPath.match(/^\/review\/(\d+)\/?$/);
 
-  if (initialPath === "/intro") openLanding(false);
   if (birdMatch) openSharedProfile(decodeURIComponent(birdMatch[1]));
 
   if (token) {
@@ -1303,8 +1302,13 @@
     // A shared profile link is a public page — don't stack the sign-in
     // wall behind it. It appears once the visitor closes the profile.
     $("auth-overlay").classList.remove("open");
-  } else {
+  } else if (reviewMatch) {
+    // A review link needs an account right away, so go straight to sign-in.
     showAuth();
-    if (reviewMatch) pendingDirectReviewAfterAuth = parseInt(reviewMatch[1], 10);
+    pendingDirectReviewAfterAuth = parseInt(reviewMatch[1], 10);
+  } else {
+    // Everyone else (root "/", "/intro", or anything unrecognized) meets
+    // the landing page first instead of a login wall.
+    openLanding(false);
   }
 })();

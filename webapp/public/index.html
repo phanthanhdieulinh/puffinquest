@@ -658,6 +658,8 @@
   .puffin-kid.show{opacity:1;transform:translateY(0) scale(1);}
 
   /* ============ DIRECT REVIEW (link a friend sends you) ============ */
+  .direct-review-header{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;margin-top:-6px;}
+  .direct-review-header h3{margin:0;}
   .direct-review-body{text-align:center;}
   .direct-review-body .rcard-photo{height:160px;margin:14px 0;}
   .direct-review-actions{display:flex;gap:10px;margin-top:16px;}
@@ -1088,11 +1090,13 @@
 <!-- Direct review: opened from a "review my quest" link a friend sent you -->
 <div class="modal-overlay" id="direct-review-overlay" role="dialog" aria-modal="true" aria-labelledby="direct-review-title">
   <div class="modal" id="direct-review-modal">
-    <div class="modal-top">
-      <div class="icon-chip" id="direct-review-icon" style="font-size:24px;">🐧</div>
+    <div class="modal-top" style="justify-content:flex-end;">
       <button class="modal-close" id="direct-review-close" aria-label="Close" type="button">✕</button>
     </div>
-    <h3 id="direct-review-title">Review this quest</h3>
+    <div class="direct-review-header">
+      <div class="icon-chip" id="direct-review-icon" style="font-size:24px;">🐧</div>
+      <h3 id="direct-review-title">Review this quest</h3>
+    </div>
     <div class="direct-review-body" id="direct-review-body">
       <p class="qdesc-full">Loading…</p>
     </div>
