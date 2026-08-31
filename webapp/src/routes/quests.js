@@ -3,7 +3,7 @@
 const express = require("express");
 const { pool } = require("../db");
 const { requireAuth } = require("../auth");
-const { refreshUser } = require("../gamestate");
+const { refreshUser, finalizeSubmission } = require("../gamestate");
 const { addBotApprovals } = require("../bots");
 const content = require("../content");
 
@@ -75,6 +75,31 @@ router.post("/submit", requireAuth, async (req, res) => {
 
   const bonus = content.questBonus(!!thumb, !!caption);
 
+  if (isDaily) {
+    // Daily quests are instant — no Cove review needed at all. Insert as
+    // pending then immediately finalize, reusing the same crediting logic
+    // the reviewed path uses.
+    const { rows } = await pool.query(
+      `INSERT INTO submissions (user_id, quest_id, is_daily, title, icon, base_reward, bonus_reward, caption, thumb)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [user.id, questId, isDaily, quest.title, quest.icon, quest.reward, bonus, caption, thumb]
+    );
+    const submission = rows[0];
+    await finalizeSubmission(submission.id);
+    return res.status(201).json({
+      submission: {
+        id: submission.id,
+        questId: submission.quest_id,
+        isDaily: true,
+        title: submission.title,
+        icon: submission.icon,
+        reward: submission.base_reward + submission.bonus_reward,
+        status: "approved",
+        createdAt: submission.created_at
+      }
+    });
+  }
+
   const client = await pool.connect();
   let submission;
   try {
@@ -85,8 +110,8 @@ router.post("/submit", requireAuth, async (req, res) => {
       [user.id, questId, isDaily, quest.title, quest.icon, quest.reward, bonus, caption, thumb]
     );
     submission = rows[0];
-    // 2 always-on bot puffineers pre-approve every submission so it never
-    // gets stuck — only 1 real puffineer's approval is needed to finish it.
+    // 2 always-on bot puffineers pre-approve every fun-quest submission so
+    // it never gets stuck — only 1 real puffineer's approval finishes it.
     const botApprovals = await addBotApprovals(client, submission.id);
     submission.approvals = botApprovals;
     await client.query("COMMIT");
@@ -105,6 +130,7 @@ router.post("/submit", requireAuth, async (req, res) => {
       title: submission.title,
       icon: submission.icon,
       reward: submission.base_reward + submission.bonus_reward,
+      status: "pending",
       approvals: submission.approvals,
       approvalsNeeded: content.REVIEW_APPROVALS_NEEDED,
       createdAt: submission.created_at

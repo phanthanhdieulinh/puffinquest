@@ -403,10 +403,12 @@
     $("caption-input").value = "";
     $("caption-count").textContent = "0/50";
     updateModalRewardDisplay();
+    $("submit-btn").textContent = isDaily ? "Complete Quest" : "Submit to the Cove";
 
     const status = questStatusFor(questId, isDaily);
     if (status === "done") {
       const entry = journal.find((e) => e.questId === questId);
+      $("done-title").textContent = isDaily ? "Quest Complete!" : "Approved by the Cove!";
       $("done-msg").textContent = "You earned +" + (entry ? entry.reward : q.reward) + " Puffins.";
       showModalStage("done");
     } else if (status === "pending") {
@@ -532,11 +534,24 @@
     $("submit-btn").disabled = true;
     try {
       const { submission } = await api("/quests/submit", { method: "POST", body: { questId, caption, thumb } });
-      pendingSubmissions.push(submission);
-      renderQuestGrids();
-      $("pending-msg").textContent = "Waiting for real puffineers to review it (0/" + submission.approvalsNeeded + " approvals so far).";
-      showModalStage("pending");
-      toast("Submitted! Waiting for the Cove to review it.", "📮");
+      if (submission.status === "approved") {
+        // Daily quests need no review — instant credit.
+        await refreshCore();
+        renderHeader();
+        renderQuestGrids();
+        $("done-title").textContent = "Quest Complete!";
+        $("done-msg").textContent = "You earned +" + submission.reward + " Puffins.";
+        showModalStage("done");
+        toast("+" + submission.reward + " Puffins earned!", "🐧");
+        burstConfetti();
+        pulseCoin();
+      } else {
+        pendingSubmissions.push(submission);
+        renderQuestGrids();
+        $("pending-msg").textContent = "Waiting for real puffineers to review it (0/" + submission.approvalsNeeded + " approvals so far).";
+        showModalStage("pending");
+        toast("Submitted! Waiting for the Cove to review it.", "📮");
+      }
     } catch (err) {
       toast(err.message, "⚠️");
       if (err.status === 409) {
@@ -1252,6 +1267,7 @@
         pulseCoin();
         if (activeQuestId && overlay.classList.contains("open") && newlyApproved.some((p) => p.questId === activeQuestId)) {
           const entry = journal.find((e) => e.questId === activeQuestId);
+          $("done-title").textContent = "Approved by the Cove!";
           $("done-msg").textContent = "You earned +" + (entry ? entry.reward : 0) + " Puffins.";
           showModalStage("done");
         }

@@ -20,21 +20,27 @@ const BOT_REVIEWERS = [
 ];
 const BOT_COMMENTS = ["Nice job! 🎉", "Love this!", "You've got this 🔥", "So wholesome", "Way to go!", "Great find!", "Keep it up!"];
 
+// Daily quests are instant — no Cove review needed, so rewards stay small
+// (+1 to +5) and the pool leans toward quick, varied, everyday-good habits.
 const DAILY_POOL = [
-  { id: "veggie", icon: "🥦", title: "Grocery Grab", desc: "Get one veggie at the store. Snap it in your bag, or the receipt line that proves it.", reward: 10 },
-  { id: "bird", icon: "🐦", title: "Bird Watch", desc: "Find a bird — any bird — and get a photo of it before it flies off.", reward: 12 },
-  { id: "water", icon: "💧", title: "Hydration Check", desc: "Photograph your water bottle or glass, ideally mid-sip.", reward: 6 },
-  { id: "stretch", icon: "🧘", title: "Stretch Break", desc: "Take 60 seconds to stretch. A photo of you mid-stretch counts.", reward: 8 },
-  { id: "book", icon: "📚", title: "Page Turner", desc: "Photo of whatever you're currently reading, open to today's page.", reward: 8 },
-  { id: "sky", icon: "🌅", title: "Sky Right Now", desc: "Step outside and photograph the sky exactly as it looks this minute.", reward: 7 },
-  { id: "tidy", icon: "🧹", title: "Tidy Corner", desc: "Pick one small messy spot and photograph it looking tidier.", reward: 9 },
-  { id: "kind-note", icon: "💌", title: "Kind Word", desc: "Leave a short kind note for someone. Photograph it before you give it away.", reward: 11 },
-  { id: "plant", icon: "🌱", title: "Plant Check-in", desc: "Water or check on a plant, then snap a photo of it looking loved.", reward: 8 },
-  { id: "litter", icon: "🚮", title: "Litter Pick", desc: "Pick up one piece of litter you spot outside. Photo of it in the bin.", reward: 10 },
-  { id: "outside", icon: "🚪", title: "Step Outside", desc: "Photograph the view from just outside your front door.", reward: 6 },
-  { id: "fruit", icon: "🍎", title: "Fruit Find", desc: "Photograph a piece of fruit — bonus points if you actually eat it.", reward: 6 },
-  { id: "doodle", icon: "🎨", title: "Doodle Break", desc: "Doodle anything for two minutes, then photograph your masterpiece.", reward: 7 },
-  { id: "laundry", icon: "🧺", title: "Laundry Day", desc: "Fold one small pile of laundry, photo of the neat result.", reward: 7 }
+  { id: "veggie", icon: "🥦", title: "Grocery Grab", desc: "Get one veggie at the store. Snap it in your bag, or the receipt line that proves it.", reward: 3 },
+  { id: "bird", icon: "🐦", title: "Bird Watch", desc: "Find a bird — any bird — and get a photo of it before it flies off.", reward: 3 },
+  { id: "water", icon: "💧", title: "Hydration Check", desc: "Photograph your water bottle or glass, ideally mid-sip.", reward: 1 },
+  { id: "stretch", icon: "🧘", title: "Stretch Break", desc: "Take 60 seconds to stretch. A photo of you mid-stretch counts.", reward: 2 },
+  { id: "exercise", icon: "🏃", title: "Move Your Body", desc: "10 minutes of any exercise — a run, a workout, a walk that gets your heart going.", reward: 5 },
+  { id: "steps", icon: "🚶", title: "Take a Walk", desc: "Step out for a short walk, anywhere. Photo of the route or your shoes on the move.", reward: 3 },
+  { id: "book", icon: "📚", title: "Page Turner", desc: "Photo of whatever you're currently reading, open to today's page.", reward: 2 },
+  { id: "sky", icon: "🌅", title: "Sky Right Now", desc: "Step outside and photograph the sky exactly as it looks this minute.", reward: 1 },
+  { id: "tidy", icon: "🧹", title: "Tidy Corner", desc: "Pick one small messy spot and photograph it looking tidier.", reward: 3 },
+  { id: "kind-note", icon: "💌", title: "Kind Word", desc: "Leave a short kind note for someone. Photograph it before you give it away.", reward: 4 },
+  { id: "plant", icon: "🌱", title: "Plant Check-in", desc: "Water or check on a plant, then snap a photo of it looking loved.", reward: 2 },
+  { id: "litter", icon: "🚮", title: "Litter Pick", desc: "Pick up one piece of litter you spot outside. Photo of it in the bin.", reward: 3 },
+  { id: "outside", icon: "🚪", title: "Step Outside", desc: "Photograph the view from just outside your front door.", reward: 1 },
+  { id: "fruit", icon: "🍎", title: "Fruit Find", desc: "Photograph a piece of fruit — bonus points if you actually eat it.", reward: 1 },
+  { id: "doodle", icon: "🎨", title: "Doodle Break", desc: "Doodle anything for two minutes, then photograph your masterpiece.", reward: 2 },
+  { id: "laundry", icon: "🧺", title: "Laundry Day", desc: "Fold one small pile of laundry, photo of the neat result.", reward: 2 },
+  { id: "sleep", icon: "😴", title: "Early Lights Out", desc: "Get to bed at a decent hour tonight. Photo of the clock, or good morning tomorrow.", reward: 4 },
+  { id: "breathe", icon: "🌬️", title: "Breathing Break", desc: "60 seconds of slow, deep breaths. A photo of your calm spot counts.", reward: 1 }
 ];
 
 const FUN_POOL = [
