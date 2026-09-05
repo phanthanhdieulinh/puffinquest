@@ -7,13 +7,13 @@
 
 const PHOTO_BONUS = 2;
 const CAPTION_BONUS = 1;
-const REVIEW_APPROVALS_NEEDED = 3;
-const REVIEWER_REWARD = 1;
+const CHEER_REWARD = 1;
 const COVE_DAILY_CAP = 200; // sanity cap, not a real gameplay limit
 
-// Every submission is pre-approved by 2 always-on bot puffineers so a quest
-// never gets stuck waiting on a quiet Cove — only 1 real puffineer's
-// approval is needed to finish it off.
+// Fun (and City Challenge) quests are decided by the 2 always-on bot
+// puffineers alone — no real-user approval is required anymore. Real users
+// can still swipe through the Networking Cove afterward, but that's now a
+// purely social cheer/skip, decoupled from whether the quest was rewarded.
 const BOT_REVIEWERS = [
   { username: "cove_bot_breezy", displayName: "Breezy Puffin" },
   { username: "cove_bot_tidal", displayName: "Tidal Puffin" }
@@ -76,8 +76,47 @@ const LOOT_TABLE = [
 
 const NAME_ADJ = ["Misty", "Salty", "Windy", "Foamy", "Pebble", "Chilly", "Reedy", "Driftwood", "Cloudy", "Tidepool", "Brisk", "Harbor", "Foggy", "Rocky", "Breezy", "Marsh"];
 
+// City Challenge: pick a city, get one blurred/zoomed "mystery landmark" at a
+// time to go find and photograph in person. Rendered as a stylized emoji
+// mystery card (heavily blurred + zoomed via CSS) rather than a real scraped
+// photo, so there's no landmark-photo licensing to worry about.
+const ALLOWED_CITIES = ["hanoi", "hcmc", "singapore"];
+const CITY_CHALLENGES = {
+  hanoi: {
+    name: "Hà Nội",
+    landmarks: [
+      { id: "hanoi-turtle-tower", icon: "🐢", title: "Turtle Tower", desc: "A little tower on an island in the Old Quarter's favorite lake.", reward: 40 },
+      { id: "hanoi-one-pillar", icon: "🏯", title: "One Pillar Pagoda", desc: "A tiny pagoda that looks like it's floating on a single stone leg.", reward: 40 },
+      { id: "hanoi-temple-literature", icon: "⛩️", title: "Temple of Literature", desc: "Vietnam's first university, guarded by stone turtles and old exam steles.", reward: 40 }
+    ]
+  },
+  hcmc: {
+    name: "Ho Chi Minh City",
+    landmarks: [
+      { id: "hcmc-notre-dame", icon: "⛪", title: "Notre-Dame Cathedral Basilica", desc: "Red-brick towers, imported brick by brick from France.", reward: 40 },
+      { id: "hcmc-ben-thanh", icon: "🏛️", title: "Bến Thành Market", desc: "A clock tower marks the entrance to this century-old market.", reward: 40 },
+      { id: "hcmc-independence-palace", icon: "🏢", title: "Independence Palace", desc: "A 1960s government palace with a helicopter still parked on the roof.", reward: 40 }
+    ]
+  },
+  singapore: {
+    name: "Singapore",
+    landmarks: [
+      { id: "sg-merlion", icon: "🦁", title: "Merlion", desc: "Half lion, half fish, all waterspout.", reward: 40 },
+      { id: "sg-marina-bay-sands", icon: "🏨", title: "Marina Bay Sands", desc: "Three towers holding up a boat-shaped rooftop pool.", reward: 40 },
+      { id: "sg-gardens-by-the-bay", icon: "🌳", title: "Gardens by the Bay", desc: "Metal supertrees that light up after dark.", reward: 40 }
+    ]
+  }
+};
+function cityLandmarksFlat() {
+  const out = [];
+  for (const key of Object.keys(CITY_CHALLENGES)) {
+    for (const l of CITY_CHALLENGES[key].landmarks) out.push({ ...l, cityKey: key, requiresPhoto: true });
+  }
+  return out;
+}
+
 function findQuest(id) {
-  return DAILY_POOL.concat(FUN_POOL).find((q) => q.id === id);
+  return DAILY_POOL.concat(FUN_POOL).concat(cityLandmarksFlat()).find((q) => q.id === id);
 }
 
 /* ================= DETERMINISTIC HELPERS ================= */
@@ -180,8 +219,7 @@ function generateRandomName() {
 module.exports = {
   PHOTO_BONUS,
   CAPTION_BONUS,
-  REVIEW_APPROVALS_NEEDED,
-  REVIEWER_REWARD,
+  CHEER_REWARD,
   COVE_DAILY_CAP,
   BOT_REVIEWERS,
   BOT_COMMENTS,
@@ -191,6 +229,9 @@ module.exports = {
   FISH_COST,
   LOOT_TABLE,
   SOCIAL_PLATFORMS,
+  ALLOWED_CITIES,
+  CITY_CHALLENGES,
+  cityLandmarksFlat,
   buildSocialLinks,
   findQuest,
   hashStr,

@@ -14,7 +14,9 @@ router.get("/", (req, res) => {
     fishCost: content.FISH_COST,
     photoBonus: content.PHOTO_BONUS,
     captionBonus: content.CAPTION_BONUS,
-    reviewApprovalsNeeded: content.REVIEW_APPROVALS_NEEDED
+    cheerReward: content.CHEER_REWARD,
+    cityChallenges: content.CITY_CHALLENGES,
+    allowedCities: content.ALLOWED_CITIES
   });
 });
 

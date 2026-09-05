@@ -1,6 +1,13 @@
 "use strict";
 
-const { Pool } = require("pg");
+const { Pool, types } = require("pg");
+
+// node-pg parses SQL DATE columns (OID 1082) into JS Date objects by
+// default, but the app compares them with `!==` against plain "YYYY-MM-DD"
+// strings (e.g. daily_date, cove_date rollover checks) — a Date object
+// never strictly-equals a string, so those checks would always be true.
+// Returning the raw string instead makes those comparisons correct.
+types.setTypeParser(1082, (val) => val);
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -73,6 +80,16 @@ CREATE TABLE IF NOT EXISTS reviews (
   UNIQUE(submission_id, reviewer_id)
 );
 
+CREATE TABLE IF NOT EXISTS cheers (
+  id SERIAL PRIMARY KEY,
+  submission_id INTEGER NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+  cheerer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  decision TEXT NOT NULL,
+  comment TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(submission_id, cheerer_id)
+);
+
 CREATE TABLE IF NOT EXISTS catch_log (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -86,7 +103,10 @@ CREATE INDEX IF NOT EXISTS idx_catch_log_user ON catch_log(user_id);
 `;
 
 // ADD COLUMN IF NOT EXISTS so upgrades to an already-deployed database are safe.
-const MIGRATIONS = [`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_bot BOOLEAN NOT NULL DEFAULT false;`];
+const MIGRATIONS = [
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_bot BOOLEAN NOT NULL DEFAULT false;`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS city TEXT;`
+];
 
 async function initSchema() {
   await pool.query(SCHEMA);

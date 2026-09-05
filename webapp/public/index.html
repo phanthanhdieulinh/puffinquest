@@ -208,6 +208,9 @@
   .block-head h2{font-size:19px;margin:0;display:flex;align-items:center;gap:8px;}
   .block-head p{margin:2px 0 0;color:var(--ink-soft);font-size:13px;}
   .block-tag{font-size:11.5px;font-weight:700;color:var(--ink-faint);font-family:"Space Mono";}
+  .daily-head-right{display:flex;align-items:center;gap:10px;}
+  .daily-reroll-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--border-glass);background:var(--surface-strong);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:transform .3s cubic-bezier(.34,1.56,.64,1);flex:none;}
+  .daily-reroll-btn:active{transform:rotate(180deg) scale(.9);}
 
   .quest-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
   @media (max-width:480px){ .quest-grid{grid-template-columns:1fr;} }
@@ -288,6 +291,24 @@
   .fight-foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px;}
   .fight-count{font-size:12.5px;color:var(--ink-soft);}
   .fight-claim{width:100%;margin-top:14px;}
+
+  /* ============ CITY CHALLENGE ============ */
+  .city-picker{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  @media (max-width:480px){ .city-picker{grid-template-columns:1fr;} }
+  .city-choice-card{border-radius:var(--radius-lg);padding:18px 14px;text-align:center;cursor:pointer;border:none;font:inherit;color:inherit;}
+  .city-choice-card .icon-chip{margin:0 auto 10px;font-size:24px;}
+  .city-choice-card h3{font-size:14.5px;margin:0;}
+  .city-card{border-radius:var(--radius-xl);padding:20px;}
+  .city-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .city-change-btn{background:none;border:none;color:var(--kelp);font-size:11.5px;font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:2px;padding:2px;}
+  .mystery-photo{
+    position:relative;height:150px;border-radius:var(--radius-lg);margin:16px 0;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,var(--kelp-soft),var(--surface-strong));border:1px solid var(--border-glass);
+  }
+  .mystery-photo .mystery-icon{font-size:260px;line-height:1;filter:blur(9px) saturate(1.3);transform:scale(1.1);opacity:.85;}
+  .mystery-photo .mystery-badge{position:absolute;top:10px;right:10px;background:rgba(8,26,33,.55);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:4px 10px;border-radius:var(--radius-pill);}
+  .city-all-done{text-align:center;padding:20px 10px;color:var(--ink-soft);font-size:13.5px;}
 
   /* ============ FISH ============ */
   .fish-page-head{text-align:center;margin-top:18px;}
@@ -770,7 +791,10 @@
     <section class="block" id="daily">
       <div class="block-head">
         <h2>🌤️ Today's Quests</h2>
-        <p class="block-tag" id="daily-progress">0/3 done</p>
+        <div class="daily-head-right">
+          <p class="block-tag" id="daily-progress">0/3 done</p>
+          <button class="daily-reroll-btn" id="daily-reroll-btn" type="button" title="Get new random quests" aria-label="Get new random quests">🔀</button>
+        </div>
       </div>
       <div class="quest-grid" id="daily-grid"></div>
     </section>
@@ -789,8 +813,8 @@
   <!-- ======= COVE PAGE ======= -->
   <section class="page" data-page="cove" id="page-cove">
     <div class="cove-page-head">
-      <h1>🫧 Review Cove</h1>
-      <p>Swipe right to approve a fellow puffineer's photo (and cheer them on), left to skip. Every approval earns you a little bonus too.</p>
+      <h1>🫧 Networking Cove</h1>
+      <p>Swipe right to get your fellow puffineer's quest (and cheer them on), left to skip. Every pawsitive comment earns you a little bonus too.</p>
     </div>
     <p class="cove-progress" id="cove-progress"></p>
     <div class="cove-deck">
@@ -801,7 +825,7 @@
       </div>
       <div class="cove-deck-actions">
         <button class="rbtn rbtn-skip" id="cove-skip-btn" type="button">✕ Skip</button>
-        <button class="rbtn rbtn-approve" id="cove-approve-btn" type="button">👍 Approve</button>
+        <button class="rbtn rbtn-approve" id="cove-approve-btn" type="button">🎉 Cheer</button>
       </div>
       <p class="cove-hint">Drag the card, or use the buttons</p>
     </div>
@@ -814,6 +838,16 @@
       <p>Time-boxed challenges. Fill the bar before it resets to win a bonus haul of Puffins.</p>
     </div>
     <div class="fight-grid" id="fight-list"></div>
+
+    <section class="block">
+      <div class="block-head">
+        <div>
+          <h2>🏙️ City Challenge</h2>
+          <p>Pick your city, then go find the mystery landmark hiding behind the blur.</p>
+        </div>
+      </div>
+      <div id="city-challenge-body"></div>
+    </section>
   </section>
 
   <!-- ======= FISH PAGE ======= -->
@@ -934,10 +968,10 @@
     </div>
 
     <div id="modal-body-idle">
-      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload a photo for this quest (optional)">
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload a photo for this quest">
         <svg viewBox="0 0 24 24"><use href="#i-camera"/></svg>
-        <p>Tap to snap or upload a photo (optional)</p>
-        <p class="dz-sub">Add a photo for +2 bonus Puffins</p>
+        <p id="dropzone-label">Tap to snap or upload a photo (optional)</p>
+        <p class="dz-sub" id="dropzone-sub">Add a photo for +2 bonus Puffins</p>
       </div>
       <input type="file" id="file-input" accept="image/*" capture="environment" class="visually-hidden" />
       <div id="preview-holder"></div>
@@ -946,24 +980,17 @@
         <span class="char-count" id="caption-count">0/50</span>
       </div>
       <div class="modal-actions">
-        <button class="btn btn-primary" id="submit-btn" type="button">Submit to the Cove</button>
+        <button class="btn btn-primary" id="submit-btn" type="button">Complete Quest</button>
       </div>
-    </div>
-
-    <div id="modal-body-pending" style="display:none;" class="celebrate">
-      <svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>
-      <h4>Sent to the Cove!</h4>
-      <p id="pending-msg">Waiting for real puffineers to review it.</p>
-      <div class="share-row">
-        <button class="share-link-btn" id="pending-share-btn" type="button">Send this quest to a friend to review</button>
-      </div>
-      <div class="modal-actions"><button class="btn btn-ghost" id="pending-close-btn" type="button" style="width:100%;">Got it</button></div>
     </div>
 
     <div id="modal-body-done" style="display:none;" class="celebrate">
       <svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>
-      <h4 id="done-title">Approved by the Cove!</h4>
+      <h4 id="done-title">Quest Complete!</h4>
       <p id="done-msg">You earned 10 Puffins.</p>
+      <div class="share-row" id="done-share-row" style="display:none;">
+        <button class="share-link-btn" id="done-share-btn" type="button">Send this quest to a friend to cheer</button>
+      </div>
       <div class="modal-actions"><button class="btn btn-ghost" id="done-close-btn" type="button" style="width:100%;">Nice</button></div>
     </div>
   </div>
@@ -1106,7 +1133,7 @@
     </div>
     <div class="direct-review-header">
       <div class="icon-chip" id="direct-review-icon" style="font-size:24px;">🐧</div>
-      <h3 id="direct-review-title">Review this quest</h3>
+      <h3 id="direct-review-title">Cheer this quest</h3>
     </div>
     <div class="direct-review-body" id="direct-review-body">
       <p class="qdesc-full">Loading…</p>

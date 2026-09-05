@@ -7,10 +7,10 @@
   let user = null;
   let journal = [];
   let questsStatus = { dailyQuestIds: [], dailyDoneIds: [], funDoneIds: [] };
-  let pendingSubmissions = [];
   let coveQueue = [];
   let fightList = [];
   let fishData = { titles: [], badges: [], equippedTitle: null, catchLog: [] };
+  let cityData = { city: null, catalog: {}, doneIds: [] };
 
   let activeQuestId = null;
   let activeIsDaily = false;
@@ -323,22 +323,13 @@
   /* ================= QUEST GRIDS ================= */
   function questStatusFor(id, isDaily) {
     const doneIds = isDaily ? questsStatus.dailyDoneIds : questsStatus.funDoneIds;
-    if (doneIds.includes(id)) return "done";
-    if (pendingSubmissions.some((p) => p.questId === id)) return "pending";
-    return "new";
+    return doneIds.includes(id) ? "done" : "new";
   }
 
   function makeQuestCard(q, isDaily) {
-    const status = questStatusFor(q.id, isDaily);
     const card = document.createElement("button");
     card.type = "button";
-    card.className = "qcard glass glass-interactive" + (status === "done" ? " is-done" : "") + (status === "pending" ? " is-pending" : "");
-    const chip =
-      status === "done"
-        ? '<span class="status-chip status-done">Done</span>'
-        : status === "pending"
-        ? '<span class="status-chip status-pending">Pending</span>'
-        : '<span class="status-chip status-new">New</span>';
+    card.className = "qcard glass glass-interactive";
     card.innerHTML =
       '<div class="glass-sheen"></div>' +
       '<div class="icon-chip">' + q.icon + "</div>" +
@@ -346,36 +337,65 @@
       '<div class="qdesc">' + q.desc + "</div>" +
       '<div class="qcard-foot">' +
       '<span class="reward-chip"><svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>+' + q.reward + "</span>" +
-      chip +
+      '<span class="status-chip status-new">New</span>' +
       "</div>";
     card.addEventListener("click", () => openModal(q.id, isDaily));
     return card;
   }
 
+  // Completed quests are no longer shown at all — once done, they drop out
+  // of the grid instead of sticking around greyed out.
   function renderQuestGrids() {
     if (!content) return;
     const dailyGrid = $("daily-grid");
     dailyGrid.innerHTML = "";
     const todaysQuests = questsStatus.dailyQuestIds.map((id) => content.dailyPool.find((q) => q.id === id)).filter(Boolean);
-    todaysQuests.forEach((q) => dailyGrid.appendChild(makeQuestCard(q, true)));
+    const todaysRemaining = todaysQuests.filter((q) => !questsStatus.dailyDoneIds.includes(q.id));
+    if (todaysRemaining.length) {
+      todaysRemaining.forEach((q) => dailyGrid.appendChild(makeQuestCard(q, true)));
+    } else {
+      const empty = document.createElement("div");
+      empty.className = "fish-empty";
+      empty.textContent = "All done for today — nice! Hit 🔀 for more, or come back tomorrow.";
+      dailyGrid.appendChild(empty);
+    }
     const doneCount = todaysQuests.filter((q) => questsStatus.dailyDoneIds.includes(q.id)).length;
     $("daily-progress").textContent = doneCount + "/" + todaysQuests.length + " done";
 
     const funGrid = $("fun-grid");
     funGrid.innerHTML = "";
-    content.funPool.forEach((q) => funGrid.appendChild(makeQuestCard(q, false)));
+    content.funPool.filter((q) => !questsStatus.funDoneIds.includes(q.id)).forEach((q) => funGrid.appendChild(makeQuestCard(q, false)));
   }
+
+  $("daily-reroll-btn").addEventListener("click", async () => {
+    try {
+      const { dailyQuestIds } = await api("/quests/reroll", { method: "POST" });
+      questsStatus.dailyQuestIds = dailyQuestIds;
+      renderQuestGrids();
+      toast("Fresh quests waddled in!", "🔀");
+    } catch (err) {
+      toast(err.message, "⚠️");
+    }
+  });
 
   /* ================= QUEST MODAL ================= */
   const overlay = $("modal-overlay");
 
+  function cityLandmarksFlat() {
+    if (!content || !content.cityChallenges) return [];
+    const out = [];
+    for (const key of Object.keys(content.cityChallenges)) {
+      for (const l of content.cityChallenges[key].landmarks) out.push({ ...l, cityKey: key, requiresPhoto: true });
+    }
+    return out;
+  }
+
   function findQuest(id) {
-    return content.dailyPool.concat(content.funPool).find((q) => q.id === id);
+    return content.dailyPool.concat(content.funPool).concat(cityLandmarksFlat()).find((q) => q.id === id);
   }
 
   function showModalStage(stage) {
     $("modal-body-idle").style.display = stage === "idle" ? "" : "none";
-    $("modal-body-pending").style.display = stage === "pending" ? "" : "none";
     $("modal-body-done").style.display = stage === "done" ? "" : "none";
   }
 
@@ -386,6 +406,8 @@
     const bonus = (previewDataUrl ? content.photoBonus : 0) + (caption ? content.captionBonus : 0);
     $("modal-reward-amt").textContent = "+" + (q.reward + bonus) + " Puffins";
   }
+
+  let lastCompletedSubmission = null;
 
   function openModal(questId, isDaily) {
     const q = findQuest(questId);
@@ -403,20 +425,19 @@
     $("caption-input").value = "";
     $("caption-count").textContent = "0/50";
     updateModalRewardDisplay();
-    $("submit-btn").textContent = isDaily ? "Complete Quest" : "Submit to the Cove";
+    $("submit-btn").textContent = "Complete Quest";
+    $("submit-btn").disabled = !!q.requiresPhoto;
+    $("dropzone-label").textContent = q.requiresPhoto ? "Tap to snap or upload your proof photo (required)" : "Tap to snap or upload a photo (optional)";
+    $("dropzone-sub").textContent = q.requiresPhoto ? "A photo is required for this one — show us you found it!" : "Add a photo for +2 bonus Puffins";
 
     const status = questStatusFor(questId, isDaily);
     if (status === "done") {
       const entry = journal.find((e) => e.questId === questId);
-      $("done-title").textContent = isDaily ? "Quest Complete!" : "Approved by the Cove!";
+      $("done-title").textContent = "Quest Complete!";
       $("done-msg").textContent = "You earned +" + (entry ? entry.reward : q.reward) + " Puffins.";
+      $("done-share-row").style.display = !isDaily && entry ? "" : "none";
+      lastCompletedSubmission = !isDaily && entry ? { id: entry.id } : null;
       showModalStage("done");
-    } else if (status === "pending") {
-      const pending = pendingSubmissions.find((p) => p.questId === questId);
-      $("pending-msg").textContent = pending
-        ? "Waiting for real puffineers to review it (" + pending.approvals + "/" + pending.approvalsNeeded + " approvals so far)."
-        : "Waiting for real puffineers to review it.";
-      showModalStage("pending");
     } else {
       showModalStage("idle");
     }
@@ -429,15 +450,13 @@
     document.body.style.overflow = "";
   }
   $("modal-close").addEventListener("click", closeModal);
-  $("pending-close-btn").addEventListener("click", closeModal);
   $("done-close-btn").addEventListener("click", closeModal);
-  $("pending-share-btn").addEventListener("click", () => {
-    const pending = pendingSubmissions.find((p) => p.questId === activeQuestId);
-    if (!pending) return;
+  $("done-share-btn").addEventListener("click", () => {
+    if (!lastCompletedSubmission) return;
     const url = new URL(location.href);
     url.search = "";
-    url.pathname = "/review/" + pending.id;
-    copyToClipboard(url.toString(), "Review link copied — send it to a friend!");
+    url.pathname = "/review/" + lastCompletedSubmission.id;
+    copyToClipboard(url.toString(), "Link copied — send it to a friend to cheer!");
   });
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) closeModal();
@@ -510,12 +529,15 @@
           '<div class="preview-wrap"><img src="' + t + '" alt="Your quest proof photo"/>' +
           '<button class="preview-remove" id="preview-remove" type="button" aria-label="Remove photo">✕</button></div>';
         updateModalRewardDisplay();
+        $("submit-btn").disabled = false;
         $("preview-remove").addEventListener("click", (ev) => {
           ev.stopPropagation();
           previewDataUrl = null;
           previewThumb = null;
           $("preview-holder").innerHTML = "";
           updateModalRewardDisplay();
+          const q = findQuest(activeQuestId);
+          if (q && q.requiresPhoto) $("submit-btn").disabled = true;
         });
       }, 640);
     };
@@ -529,29 +551,26 @@
 
   $("submit-btn").addEventListener("click", async () => {
     const questId = activeQuestId;
+    const isDaily = activeIsDaily;
     const caption = $("caption-input").value.trim().slice(0, 50);
     const thumb = previewThumb;
     $("submit-btn").disabled = true;
     try {
+      // Every quest now finalizes instantly — Daily Quests need no review,
+      // and Fun/City Challenge quests are decided by the bots alone.
       const { submission } = await api("/quests/submit", { method: "POST", body: { questId, caption, thumb } });
-      if (submission.status === "approved") {
-        // Daily quests need no review — instant credit.
-        await refreshCore();
-        renderHeader();
-        renderQuestGrids();
-        $("done-title").textContent = "Quest Complete!";
-        $("done-msg").textContent = "You earned +" + submission.reward + " Puffins.";
-        showModalStage("done");
-        toast("+" + submission.reward + " Puffins earned!", "🐧");
-        burstConfetti();
-        pulseCoin();
-      } else {
-        pendingSubmissions.push(submission);
-        renderQuestGrids();
-        $("pending-msg").textContent = "Waiting for real puffineers to review it (0/" + submission.approvalsNeeded + " approvals so far).";
-        showModalStage("pending");
-        toast("Submitted! Waiting for the Cove to review it.", "📮");
-      }
+      await refreshCore();
+      renderHeader();
+      renderQuestGrids();
+      $("done-title").textContent = "Quest Complete!";
+      $("done-msg").textContent = "You earned +" + submission.reward + " Puffins.";
+      $("done-share-row").style.display = !isDaily ? "" : "none";
+      lastCompletedSubmission = !isDaily ? { id: submission.id } : null;
+      showModalStage("done");
+      toast("+" + submission.reward + " Puffins earned!", "🐧");
+      burstConfetti();
+      pulseCoin();
+      if (findQuest(questId) && findQuest(questId).cityKey) refreshCityData().catch(() => {});
     } catch (err) {
       toast(err.message, "⚠️");
       if (err.status === 409) {
@@ -565,18 +584,18 @@
     }
   });
 
-  /* ================= REVIEW COVE ================= */
+  /* ================= NETWORKING COVE ================= */
   function renderCoveProgress() {
-    $("cove-progress").textContent = user.coveApprovedToday + " reviewed today";
+    $("cove-progress").textContent = user.cheeredToday + " cheered today";
   }
 
   async function fetchCoveQueue() {
-    const { queue, approvedToday } = await api("/cove/queue");
+    const { queue, cheeredToday } = await api("/cove/queue");
     const existingIds = new Set(coveQueue.map((c) => c.id));
     queue.forEach((item) => {
       if (!existingIds.has(item.id)) coveQueue.push(item);
     });
-    user.coveApprovedToday = approvedToday;
+    user.cheeredToday = cheeredToday;
     renderCoveProgress();
     renderCoveStack();
   }
@@ -600,7 +619,7 @@
       card.style.opacity = String(1 - i * 0.15);
       const photoInner = item.thumb ? '<img src="' + item.thumb + '" alt="" />' : item.icon;
       card.innerHTML =
-        '<div class="stamp stamp-approve">Nice!</div>' +
+        '<div class="stamp stamp-approve">Cheer!</div>' +
         '<div class="stamp stamp-skip">Skip</div>' +
         '<div class="rcard-photo">' + photoInner + "</div>" +
         '<div><div class="rcard-quest">' + item.title + '</div><div class="rcard-meta"><span>' + item.byName + '</span><span class="social-icons"></span></div></div>' +
@@ -646,7 +665,7 @@
       const threshold = 90;
       if (dx > threshold) {
         flingOut(1);
-        reviewCard(item.id, "approve");
+        reviewCard(item.id, "cheer");
       } else if (dx < -threshold) {
         flingOut(-1);
         reviewCard(item.id, "skip");
@@ -665,16 +684,16 @@
   }
 
   async function reviewCard(submissionId, decision) {
-    const comment = decision === "approve" ? $("cove-comment-input").value.trim().slice(0, 50) : "";
+    const comment = decision === "cheer" ? $("cove-comment-input").value.trim().slice(0, 50) : "";
     coveQueue = coveQueue.filter((c) => c.id !== submissionId);
     $("cove-comment-input").value = "";
     $("cove-comment-count").textContent = "0/50";
     setTimeout(renderCoveStack, 280);
     try {
       const result = await api("/cove/review", { method: "POST", body: { submissionId, decision, comment } });
-      if (result.reviewerReward) {
-        user.balance += result.reviewerReward;
-        user.coveApprovedToday += 1;
+      if (result.cheerReward) {
+        user.balance += result.cheerReward;
+        user.cheeredToday += 1;
         renderHeader();
         renderCoveProgress();
         pulseCoin();
@@ -688,7 +707,7 @@
   $("cove-approve-btn").addEventListener("click", () => {
     const top = coveQueue[0];
     if (!top) return;
-    reviewCard(top.id, "approve");
+    reviewCard(top.id, "cheer");
   });
   $("cove-skip-btn").addEventListener("click", () => {
     const top = coveQueue[0];
@@ -740,6 +759,69 @@
     } catch (err) {
       toast(err.message, "⚠️");
     }
+  }
+
+  /* ================= CITY CHALLENGE ================= */
+  const CITY_LABELS = { hanoi: "🇻🇳 Hanoi", hcmc: "🇻🇳 Ho Chi Minh City", singapore: "🇸🇬 Singapore" };
+
+  async function refreshCityData() {
+    cityData = await api("/city");
+    renderCityChallenge();
+  }
+
+  async function chooseCity(city) {
+    try {
+      await api("/city", { method: "PATCH", body: { city } });
+      await refreshCityData();
+    } catch (err) {
+      toast(err.message, "⚠️");
+    }
+  }
+
+  function renderCityChallenge() {
+    const root = $("city-challenge-body");
+    root.innerHTML = "";
+    if (!cityData.city) {
+      const picker = document.createElement("div");
+      picker.className = "city-picker";
+      Object.keys(CITY_LABELS).forEach((key) => {
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "city-choice-card glass glass-interactive";
+        card.innerHTML = '<div class="glass-sheen"></div><div class="icon-chip">🏙️</div><h3>' + CITY_LABELS[key] + "</h3>";
+        card.addEventListener("click", () => chooseCity(key));
+        picker.appendChild(card);
+      });
+      root.appendChild(picker);
+      return;
+    }
+
+    const landmarks = (cityData.catalog[cityData.city] && cityData.catalog[cityData.city].landmarks) || [];
+    const next = landmarks.find((l) => !cityData.doneIds.includes(l.id));
+    const card = document.createElement("div");
+    card.className = "city-card glass";
+
+    if (!next) {
+      card.innerHTML =
+        '<div class="city-card-head"><span class="fight-tag">' + CITY_LABELS[cityData.city] + '</span>' +
+        '<button class="city-change-btn" id="city-change-btn" type="button">Change city</button></div>' +
+        '<div class="city-all-done">🏆 You\'ve found every landmark in this city! Pick another to keep exploring.</div>';
+    } else {
+      const photoInner = '<span class="mystery-icon">' + next.icon + "</span>";
+      card.innerHTML =
+        '<div class="city-card-head"><span class="fight-tag">' + CITY_LABELS[cityData.city] + '</span>' +
+        '<button class="city-change-btn" id="city-change-btn" type="button">Change city</button></div>' +
+        '<h3 class="fight-name">Mystery Landmark</h3>' +
+        '<div class="mystery-photo">' + photoInner + '<span class="mystery-badge">Zoomed in</span></div>' +
+        '<p class="fight-desc">' + next.desc + '</p>' +
+        '<div class="fight-foot"><span class="fight-count">Go find it &amp; snap a photo</span>' +
+        '<span class="reward-chip"><svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>+' + next.reward + "</span></div>" +
+        '<button class="btn btn-primary fight-claim" id="city-found-it-btn" type="button">📸 I found it!</button>';
+    }
+    root.appendChild(card);
+    $("city-change-btn").addEventListener("click", () => chooseCity(null));
+    const foundBtn = document.getElementById("city-found-it-btn");
+    if (foundBtn) foundBtn.addEventListener("click", () => openModal(next.id, false));
   }
 
   /* ================= FISH ================= */
@@ -1166,15 +1248,15 @@
     try {
       const data = await api("/cove/submission/" + submissionId);
       if (data.status === "own") {
-        body.innerHTML = '<p class="qdesc-full">This is your own quest — share the link with someone else to get it reviewed!</p>';
+        body.innerHTML = '<p class="qdesc-full">This is your own quest — share the link with someone else to cheer it on!</p>';
         return;
       }
       if (data.status === "closed") {
-        body.innerHTML = '<p class="qdesc-full">This quest has already finished being reviewed. Thanks for checking!</p>';
+        body.innerHTML = '<p class="qdesc-full">This quest isn\'t available to cheer right now. Thanks for checking!</p>';
         return;
       }
-      if (data.status === "already-reviewed") {
-        body.innerHTML = '<p class="qdesc-full">You already reviewed this one. Thanks for helping out! 🐧</p>';
+      if (data.status === "already-cheered") {
+        body.innerHTML = '<p class="qdesc-full">You already cheered this one. Thanks for the love! 🐧</p>';
         return;
       }
       if (data.status === "not-found") {
@@ -1190,9 +1272,9 @@
         '<div class="rcard-meta" style="justify-content:center;"><span>' + item.byName + '</span><span class="social-icons"></span></div>' +
         (item.caption ? '<div class="rcard-caption">"' + item.caption + '"</div>' : "") +
         '<div class="caption-row"><input type="text" id="direct-review-comment" class="glass-input" maxlength="50" placeholder="Cheer them on (optional)" /></div>' +
-        '<div class="direct-review-actions"><button class="rbtn rbtn-skip" id="direct-review-skip-btn" type="button">✕ Skip</button><button class="rbtn rbtn-approve" id="direct-review-approve-btn" type="button">👍 Approve</button></div>';
+        '<div class="direct-review-actions"><button class="rbtn rbtn-skip" id="direct-review-skip-btn" type="button">✕ Skip</button><button class="rbtn rbtn-approve" id="direct-review-approve-btn" type="button">🎉 Cheer</button></div>';
       renderSocialIcons(body.querySelector(".social-icons"), item.socialLinks);
-      body.querySelector("#direct-review-approve-btn").addEventListener("click", () => submitDirectReview("approve"));
+      body.querySelector("#direct-review-approve-btn").addEventListener("click", () => submitDirectReview("cheer"));
       body.querySelector("#direct-review-skip-btn").addEventListener("click", () => submitDirectReview("skip"));
     } catch (err) {
       body.innerHTML = '<p class="qdesc-full">' + err.message + "</p>";
@@ -1201,14 +1283,14 @@
 
   async function submitDirectReview(decision) {
     const commentEl = $("direct-review-comment");
-    const comment = decision === "approve" && commentEl ? commentEl.value.trim().slice(0, 50) : "";
+    const comment = decision === "cheer" && commentEl ? commentEl.value.trim().slice(0, 50) : "";
     const body = $("direct-review-body");
     try {
       const result = await api("/cove/review", { method: "POST", body: { submissionId: directReviewSubmissionId, decision, comment } });
-      if (result.reviewerReward) {
-        toast("Thanks for reviewing! +" + result.reviewerReward + " Puffin", "🐧");
+      if (result.cheerReward) {
+        toast("Thanks for cheering! +" + result.cheerReward + " Puffin", "🐧");
       }
-      body.innerHTML = '<p class="qdesc-full">Thanks for helping out! 🎉 Want to start your own Puffin Quest journey?</p>';
+      body.innerHTML = '<p class="qdesc-full">Thanks for cheering them on! 🎉 Want to start your own Puffin Quest journey?</p>';
     } catch (err) {
       body.innerHTML = '<p class="qdesc-full">' + err.message + "</p>";
     }
@@ -1230,6 +1312,7 @@
     document.querySelectorAll(".nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.page === name));
     if (name === "cove" && coveQueue.length < 3) fetchCoveQueue().catch(() => {});
     if (name === "bird") renderBirdTab();
+    if (name === "fight") refreshCityData().catch(() => {});
   }
   document.querySelectorAll(".nav-btn").forEach((btn) => {
     btn.addEventListener("click", () => setActivePage(btn.dataset.page));
@@ -1237,41 +1320,22 @@
 
   /* ================= POLLING ================= */
   async function refreshCore() {
-    const [me, quests, pendingRes] = await Promise.all([api("/profile/me"), api("/quests"), api("/quests/pending")]);
+    const [me, quests] = await Promise.all([api("/profile/me"), api("/quests")]);
     user = me.user;
     journal = me.journal;
     questsStatus = quests;
-    pendingSubmissions = pendingRes.pending;
   }
 
+  // Every quest finalizes instantly now, so this just keeps balance/streak
+  // and the grids in sync if the user has multiple tabs or devices open —
+  // there's no more "waiting on approval" state to detect.
   async function pollUpdates() {
     if (!token) return;
     try {
-      const [pendingRes, me, quests] = await Promise.all([api("/quests/pending"), api("/profile/me"), api("/quests")]);
-      const stillPendingIds = new Set(pendingRes.pending.map((p) => p.id));
-      const newlyApproved = pendingSubmissions.filter((p) => !stillPendingIds.has(p.id));
-      pendingSubmissions = pendingRes.pending;
-      user = me.user;
-      journal = me.journal;
-      questsStatus = quests;
+      await refreshCore();
       renderHeader();
       renderQuestGrids();
       if (document.querySelector('.page[data-page="bird"]').classList.contains("active")) renderBirdTab();
-
-      if (newlyApproved.length) {
-        newlyApproved.forEach((p) => {
-          const entry = journal.find((e) => e.questId === p.questId);
-          toast('"' + p.title + '" approved! +' + (entry ? entry.reward : p.reward) + " Puffins", "🎉");
-        });
-        burstConfetti();
-        pulseCoin();
-        if (activeQuestId && overlay.classList.contains("open") && newlyApproved.some((p) => p.questId === activeQuestId)) {
-          const entry = journal.find((e) => e.questId === activeQuestId);
-          $("done-title").textContent = "Approved by the Cove!";
-          $("done-msg").textContent = "You earned +" + (entry ? entry.reward : 0) + " Puffins.";
-          showModalStage("done");
-        }
-      }
     } catch (e) {
       // silent — offline or session expired mid-poll; next tick or an explicit action will surface it
     }
@@ -1282,9 +1346,10 @@
     try {
       content = await api("/content");
       await refreshCore();
-      const [{ fights }, fresh] = await Promise.all([api("/fight"), api("/fish")]);
+      const [{ fights }, fresh, freshCity] = await Promise.all([api("/fight"), api("/fish"), api("/city")]);
       fightList = fights;
       fishData = fresh;
+      cityData = freshCity;
 
       showApp();
       renderHeader();
@@ -1292,6 +1357,7 @@
       renderFightList();
       renderFishPanels();
       renderCoveProgress();
+      renderCityChallenge();
 
       if (pollTimer) clearInterval(pollTimer);
       pollTimer = setInterval(pollUpdates, 7000);

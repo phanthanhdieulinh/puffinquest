@@ -48,12 +48,15 @@ async function refreshUser(user) {
 async function fetchJournal(userId, limit) {
   const { rows } = await pool.query(
     `SELECT s.*,
-       COALESCE(json_agg(json_build_object('reviewerId', r.reviewer_id, 'comment', r.comment) ORDER BY r.created_at)
-         FILTER (WHERE r.decision = 'approve' AND r.comment <> ''), '[]') AS reactions
+       COALESCE(
+         (SELECT json_agg(json_build_object('comment', x.comment) ORDER BY x.created_at) FROM (
+           SELECT r.comment, r.created_at FROM reviews r WHERE r.submission_id = s.id AND r.decision = 'approve' AND r.comment <> ''
+           UNION ALL
+           SELECT c.comment, c.created_at FROM cheers c WHERE c.submission_id = s.id AND c.decision = 'cheer' AND c.comment <> ''
+         ) x), '[]'
+       ) AS reactions
      FROM submissions s
-     LEFT JOIN reviews r ON r.submission_id = s.id
      WHERE s.user_id = $1 AND s.status = 'approved'
-     GROUP BY s.id
      ORDER BY s.approved_at DESC
      LIMIT $2`,
     [userId, limit || 120]
@@ -98,7 +101,8 @@ function serializeUserPrivate(user) {
     dailyQuestIds: user.daily_quest_ids || [],
     dailyDoneIds: user.daily_done_ids || [],
     funDoneIds: user.fun_done_ids || [],
-    coveApprovedToday: user.cove_approved_today,
+    cheeredToday: user.cove_approved_today,
+    city: user.city || null,
     socialFlags: socialFlagsOf(user),
     socialLinks: content.buildSocialLinks(user.username, socialFlagsOf(user))
   };
