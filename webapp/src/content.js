@@ -432,6 +432,7 @@ const CITY_CHALLENGES = {
         icon: "🐢",
         title: "Turtle Tower",
         desc: "A little tower on an island in the Old Quarter's favorite lake.",
+        refPhoto: "/landmarks/hanoi-turtle-tower.jpg",
         reward: 40,
         lat: 21.028511,
         lng: 105.852402,
@@ -442,6 +443,7 @@ const CITY_CHALLENGES = {
         icon: "🏯",
         title: "One Pillar Pagoda",
         desc: "A tiny pagoda that looks like it's floating on a single stone leg.",
+        refPhoto: "/landmarks/hanoi-one-pillar.jpg",
         reward: 40,
         lat: 21.035833,
         lng: 105.833611,
@@ -452,10 +454,33 @@ const CITY_CHALLENGES = {
         icon: "⛩️",
         title: "Temple of Literature",
         desc: "Vietnam's first university, guarded by stone turtles and old exam steles.",
+        refPhoto: "/landmarks/hanoi-temple-literature.jpg",
         reward: 40,
         lat: 21.029333,
         lng: 105.835556,
         features: ["temple", "gate", "courtyard", "red", "tile", "scholar"]
+      },
+      {
+        id: "hanoi-long-bien",
+        icon: "🌉",
+        title: "Long Biên Bridge",
+        desc: "A century-old iron bridge stretching across the Red River, still carrying trains today.",
+        refPhoto: "/landmarks/hanoi-long-bien.jpg",
+        reward: 40,
+        lat: 21.043056,
+        lng: 105.856111,
+        features: ["bridge", "iron", "steel", "river", "train", "truss"]
+      },
+      {
+        id: "hanoi-opera-house",
+        icon: "🎭",
+        title: "Hanoi Opera House",
+        desc: "A grand French-colonial theater with cream-yellow walls and a classic stairway entrance.",
+        refPhoto: "/landmarks/hanoi-opera-house.jpg",
+        reward: 40,
+        lat: 21.024444,
+        lng: 105.857222,
+        features: ["opera", "theater", "colonial", "facade", "stairs", "columns"]
       }
     ]
   },
@@ -467,6 +492,7 @@ const CITY_CHALLENGES = {
         icon: "⛪",
         title: "Notre-Dame Cathedral Basilica",
         desc: "Red-brick towers, imported brick by brick from France.",
+        refPhoto: "/landmarks/hcmc-notre-dame.jpg",
         reward: 40,
         lat: 10.779784,
         lng: 106.699018,
@@ -477,6 +503,7 @@ const CITY_CHALLENGES = {
         icon: "🏛️",
         title: "Bến Thành Market",
         desc: "A clock tower marks the entrance to this century-old market.",
+        refPhoto: "/landmarks/hcmc-ben-thanh.jpg",
         reward: 40,
         lat: 10.772535,
         lng: 106.698032,
@@ -487,10 +514,33 @@ const CITY_CHALLENGES = {
         icon: "🏢",
         title: "Independence Palace",
         desc: "A 1960s government palace with a helicopter still parked on the roof.",
+        refPhoto: "/landmarks/hcmc-independence-palace.jpg",
         reward: 40,
         lat: 10.777011,
         lng: 106.695318,
         features: ["palace", "modernist", "fountain", "lawn", "facade", "flag"]
+      },
+      {
+        id: "hcmc-post-office",
+        icon: "🏤",
+        title: "Central Post Office",
+        desc: "A beautiful colonial building with arched windows and a giant portrait hanging inside.",
+        refPhoto: "/landmarks/hcmc-post-office.jpg",
+        reward: 40,
+        lat: 10.779889,
+        lng: 106.699722,
+        features: ["post", "office", "colonial", "arches", "yellow", "clock"]
+      },
+      {
+        id: "hcmc-bitexco",
+        icon: "🏙️",
+        title: "Bitexco Financial Tower",
+        desc: "A sleek skyscraper shaped like a lotus bud with a helipad sticking out the side.",
+        refPhoto: "/landmarks/hcmc-bitexco.jpg",
+        reward: 40,
+        lat: 10.771389,
+        lng: 106.704167,
+        features: ["skyscraper", "tower", "helipad", "glass", "lotus", "modern"]
       }
     ]
   },
@@ -502,6 +552,7 @@ const CITY_CHALLENGES = {
         icon: "🦁",
         title: "Merlion",
         desc: "Half lion, half fish, all waterspout.",
+        refPhoto: "/landmarks/sg-merlion.jpg",
         reward: 40,
         lat: 1.286782,
         lng: 103.854508,
@@ -512,6 +563,7 @@ const CITY_CHALLENGES = {
         icon: "🏨",
         title: "Marina Bay Sands",
         desc: "Three towers holding up a boat-shaped rooftop pool.",
+        refPhoto: "/landmarks/sg-marina-bay-sands.jpg",
         reward: 40,
         lat: 1.283375,
         lng: 103.860726,
@@ -522,10 +574,33 @@ const CITY_CHALLENGES = {
         icon: "🌳",
         title: "Gardens by the Bay",
         desc: "Metal supertrees that light up after dark.",
+        refPhoto: "/landmarks/sg-gardens-by-the-bay.jpg",
         reward: 40,
         lat: 1.281568,
         lng: 103.863613,
         features: ["supertrees", "gardens", "canopy", "dome", "plants", "nature"]
+      },
+      {
+        id: "sg-esplanade",
+        icon: "🎪",
+        title: "Esplanade – Theatres on the Bay",
+        desc: "Twin durian-shaped domes right on the waterfront, covered in spiky sun shades.",
+        refPhoto: "/landmarks/sg-esplanade.jpg",
+        reward: 40,
+        lat: 1.289722,
+        lng: 103.855556,
+        features: ["esplanade", "durian", "dome", "theater", "waterfront", "spikes"]
+      },
+      {
+        id: "sg-helix-bridge",
+        icon: "🌀",
+        title: "Helix Bridge",
+        desc: "A twisting steel pedestrian bridge inspired by DNA's double helix, glowing at night.",
+        refPhoto: "/landmarks/sg-helix-bridge.jpg",
+        reward: 40,
+        lat: 1.286389,
+        lng: 103.861111,
+        features: ["bridge", "helix", "steel", "pedestrian", "dna", "lights"]
       }
     ]
   }

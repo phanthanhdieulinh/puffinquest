@@ -99,8 +99,8 @@ router.post("/submit", requireAuth, async (req, res) => {
   if (isCity) {
     const cityLandmarks = (content.CITY_CHALLENGES[quest.cityKey] && content.CITY_CHALLENGES[quest.cityKey].landmarks) || [];
     const completedCityLandmarks = cityLandmarks.filter((l) => doneIds.includes(l.id));
-    if (completedCityLandmarks.length >= 3) {
-      return res.status(400).json({ error: "Each city challenge has a maximum of 3 rounds. You have already completed all 3 rounds for this city!" });
+    if (completedCityLandmarks.length >= cityLandmarks.length) {
+      return res.status(400).json({ error: "You have already completed all landmarks for this city!" });
     }
   }
   if (doneIds.includes(questId)) {
@@ -177,11 +177,9 @@ router.post("/submit", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "For City Challenge, GPS is a must, NOT optional! Please acquire your GPS location within ±10m." });
     }
 
-    // Check maximum 3 rounds per city
-    const cityLandmarks = (content.CITY_CHALLENGES[quest.cityKey] && content.CITY_CHALLENGES[quest.cityKey].landmarks) || [];
-    const completedCityLandmarks = cityLandmarks.filter(l => doneIds.includes(l.id));
-    if (completedCityLandmarks.length >= 3) {
-      return res.status(400).json({ error: "Each city challenge has a maximum of 3 rounds. You have already completed all 3 rounds for this city!" });
+    // Check if this specific landmark has already been completed
+    if (doneIds.includes(questId)) {
+      return res.status(400).json({ error: "You have already found this mystery landmark!" });
     }
 
     // 1. Check GPS match (Criterion 2 - within +-10m)

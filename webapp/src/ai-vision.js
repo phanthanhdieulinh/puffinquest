@@ -66,6 +66,42 @@ const LANDMARK_SIGNATURES = {
     localName: "滨海湾花园 Supertree Grove",
     city: "Singapore",
     features: "Towering vertical garden Supertrees with inverted cone metal canopies, lush bromeliads and orchids, and OCBC Skyway walkway."
+  },
+  "hanoi-long-bien": {
+    name: "Long Biên Bridge",
+    localName: "Cầu Long Biên",
+    city: "Hà Nội, Vietnam",
+    features: "Century-old cantilever iron truss bridge spanning the Red River, with a single railway track down the center flanked by motorbike lanes, riveted steel lattice structure."
+  },
+  "hanoi-opera-house": {
+    name: "Hanoi Opera House",
+    localName: "Nhà hát Lớn Hà Nội",
+    city: "Hà Nội, Vietnam",
+    features: "Grand French-colonial neoclassical theater with cream-yellow facade, arched windows, columned portico, and a wide stone stairway entrance on a traffic square."
+  },
+  "hcmc-post-office": {
+    name: "Saigon Central Post Office",
+    localName: "Bưu điện Trung tâm Sài Gòn",
+    city: "Ho Chi Minh City, Vietnam",
+    features: "French colonial building with arched entrance, cream-yellow and white facade, large interior arched hall with Hồ Chí Minh portrait, ornate ceiling, and philatelist counters."
+  },
+  "hcmc-bitexco": {
+    name: "Bitexco Financial Tower",
+    localName: "Tháp Tài chính Bitexco",
+    city: "Ho Chi Minh City, Vietnam",
+    features: "262m sleek modern glass skyscraper shaped like a lotus bud, with a distinctive circular helipad cantilevered from the 52nd floor, tapering curved glass curtain wall."
+  },
+  "sg-esplanade": {
+    name: "Esplanade – Theatres on the Bay",
+    localName: "滨海艺术中心",
+    city: "Singapore",
+    features: "Twin durian-shaped aluminum-clad glass domes on the Marina Bay waterfront, covered in distinctive triangular sun-shade louvers giving a spiky appearance."
+  },
+  "sg-helix-bridge": {
+    name: "Helix Bridge",
+    localName: "螺旋桥",
+    city: "Singapore",
+    features: "280m curved pedestrian bridge with tubular stainless steel double-helix structure inspired by DNA, colorful LED lighting at night, connecting Marina Centre to Bayfront."
   }
 };
 
@@ -236,8 +272,15 @@ async function callGeminiVision(apiKey, signature, photoDataUrl) {
 
       const score = Math.max(0, Math.min(100, Math.round(Number(parsed.score) || (parsed.passed ? 88 : 25))));
       const passed = Boolean(parsed.passed && score >= AI_SIMILARITY_THRESHOLD);
-      const detected = parsed.detected_subject ? ` [Detected: ${parsed.detected_subject}]` : "";
-      const feedback = String(parsed.feedback || (passed ? `Recognized ${signature.name}!` : `Did not sufficiently match ${signature.name}.`));
+      const detectedSubject = parsed.detected_subject ? String(parsed.detected_subject) : "";
+      let feedback;
+      if (passed) {
+        feedback = "Matched! Great photo – you found the right landmark. 🎯";
+      } else {
+        feedback = detectedSubject
+          ? `Detected ${detectedSubject}, not the right place and camera angle in City Challenge.`
+          : "Could not match the landmark, not the right place and camera angle in City Challenge.";
+      }
 
       return {
         passed,
@@ -245,7 +288,7 @@ async function callGeminiVision(apiKey, signature, photoDataUrl) {
         threshold: AI_SIMILARITY_THRESHOLD,
         landmarkName: signature.name,
         aiModel: `Google Gemini (${modelName})`,
-        feedback: `[Gemini Vision] ${feedback}${detected}`
+        feedback
       };
     } catch (err) {
       lastError = err;
@@ -332,8 +375,15 @@ async function callOpenAiVision(apiKey, signature, photoDataUrl) {
 
   const score = Math.max(0, Math.min(100, Math.round(Number(parsed.score) || (parsed.passed ? 88 : 25))));
   const passed = Boolean(parsed.passed && score >= AI_SIMILARITY_THRESHOLD);
-  const detected = parsed.detected_subject ? ` [Detected: ${parsed.detected_subject}]` : "";
-  const feedback = String(parsed.feedback || (passed ? `Recognized ${signature.name}!` : `Did not sufficiently match ${signature.name}.`));
+  const detectedSubject = parsed.detected_subject ? String(parsed.detected_subject) : "";
+  let feedback;
+  if (passed) {
+    feedback = "Matched! Great photo – you found the right landmark. 🎯";
+  } else {
+    feedback = detectedSubject
+      ? `Detected ${detectedSubject}, not the right place and camera angle in City Challenge.`
+      : "Could not match the landmark, not the right place and camera angle in City Challenge.";
+  }
 
   return {
     passed,
@@ -341,7 +391,7 @@ async function callOpenAiVision(apiKey, signature, photoDataUrl) {
     threshold: AI_SIMILARITY_THRESHOLD,
     landmarkName: signature.name,
     aiModel: `OpenAI (${modelName})`,
-    feedback: `[OpenAI Vision] ${feedback}${detected}`
+    feedback
   };
 }
 

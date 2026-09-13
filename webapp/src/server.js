@@ -1,15 +1,17 @@
-"use strict";
+const path = require("path");
 
 // Automatically load local .env file if available in Node 20.6+
 if (typeof process.loadEnvFile === "function") {
   try {
-    process.loadEnvFile();
+    process.loadEnvFile(path.resolve(__dirname, "../.env"));
   } catch (e) {
-    // .env file is optional in cloud environments like Render
+    try {
+      process.loadEnvFile();
+    } catch (_) {
+      // .env file is optional in cloud environments like Render
+    }
   }
 }
-
-const path = require("path");
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const { pool, initSchema } = require("./db");

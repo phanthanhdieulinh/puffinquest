@@ -504,17 +504,30 @@
     const q = findQuest(activeQuestId);
     if (!q) return;
     const isCity = !!q.cityKey;
+    const submitBtn = $("submit-btn");
+    if (!submitBtn) return;
     if (isCity) {
       // City Challenge requires BOTH photo and GPS location
       const hasPhoto = !!previewThumb;
       const hasGps = !!activeProofGps;
-      $("submit-btn").disabled = !(hasPhoto && hasGps);
+      submitBtn.disabled = !(hasPhoto && hasGps);
+      if (!hasPhoto && !hasGps) {
+        submitBtn.textContent = "📸 Snap photo & 📍 Acquire GPS to verify";
+      } else if (!hasPhoto) {
+        submitBtn.textContent = "📸 Snap photo matching view to verify";
+      } else if (!hasGps) {
+        submitBtn.textContent = "📍 Acquire GPS (Required) to verify";
+      } else {
+        submitBtn.textContent = "Verify & Auto-Approve";
+      }
     } else if (activeIsDaily) {
-      $("submit-btn").disabled = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Complete Quest";
     } else {
       // Cove Quest: to go to the community, you must take a picture. GPS is optional.
       const hasPhoto = !!previewThumb;
-      $("submit-btn").disabled = !hasPhoto;
+      submitBtn.disabled = !hasPhoto;
+      submitBtn.textContent = hasPhoto ? "Submit to Cove" : "Take or upload a picture (required)";
     }
   }
 
@@ -772,13 +785,34 @@
 
     const isCity = !!q.cityKey;
 
-    $("modal-icon").textContent = q.icon;
-    $("modal-title").textContent = q.title;
+    if (isCity) {
+      $("modal-icon").textContent = q.icon || "🏛️";
+      $("modal-icon").style.filter = "blur(3px) saturate(1.2)";
+      $("modal-icon").style.opacity = "0.75";
+      $("modal-title").textContent = "Mystery Landmark";
+    } else {
+      $("modal-icon").textContent = q.icon;
+      $("modal-icon").style.filter = "";
+      $("modal-icon").style.opacity = "";
+      $("modal-title").textContent = q.title;
+    }
     $("modal-desc").textContent = q.desc;
     $("preview-holder").innerHTML = "";
     $("file-input").value = "";
     $("caption-input").value = "";
     $("caption-count").textContent = "0/50";
+
+    const refBox = $("city-ref-photo-box");
+    const refImg = $("city-ref-img");
+    if (refBox && refImg) {
+      if (isCity && q.refPhoto) {
+        refImg.src = q.refPhoto;
+        refBox.style.display = "block";
+      } else {
+        refBox.style.display = "none";
+        refImg.src = "";
+      }
+    }
 
     const gpsBadge = $("gps-badge");
     const gpsBtn = $("gps-btn");
@@ -793,10 +827,7 @@
     const proofNoteText = $("proof-note-text");
     if (proofNote && proofNoteText) {
       if (isCity) {
-        const cityLandmarks = (cityData && cityData.catalog && cityData.catalog[q.cityKey] && cityData.catalog[q.cityKey].landmarks) || [];
-        const completedInCity = cityLandmarks.filter(l => (cityData.doneIds || []).includes(l.id)).length;
-        const roundNum = Math.min(3, completedInCity + 1);
-        proofNoteText.innerHTML = "🏙️ <strong>GPS required (±10m)</strong> · 📸 <strong>AI photo review</strong> · Round " + roundNum + "/3";
+        proofNoteText.innerHTML = "🏙️ <strong>GPS required (±10m)</strong> · 📸 <strong>AI photo review</strong> · Match reference angle";
         proofNote.style.display = "flex";
       } else if (isDaily) {
         proofNoteText.innerHTML = "🌤️ <strong>Instant reward</strong> · Photo & GPS are optional bonuses!";
@@ -825,10 +856,7 @@
     const typePill = $("modal-quest-type-pill");
     if (typePill) {
       if (isCity) {
-        const cityLandmarks = (cityData && cityData.catalog && cityData.catalog[q.cityKey] && cityData.catalog[q.cityKey].landmarks) || [];
-        const completedInCity = cityLandmarks.filter(l => (cityData.doneIds || []).includes(l.id)).length;
-        const roundNum = Math.min(3, completedInCity + 1);
-        typePill.textContent = "🏙️ City Challenge · Round " + roundNum + " of 3 (Max 3 rounds)";
+        typePill.textContent = "🏙️ City Challenge · Mystery Landmark";
         typePill.className = "modal-quest-type-pill is-city";
       } else if (isDaily) {
         typePill.textContent = "🌤️ Today's Quest · Instant Reward";
@@ -839,18 +867,21 @@
       }
     }
 
-    updateModalRewardDisplay();
-
-    const isDev = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    const isDev =
+      location.hostname === "localhost" ||
+      location.hostname === "127.0.0.1" ||
+      location.hostname.startsWith("192.168.") ||
+      location.hostname.startsWith("10.") ||
+      location.hostname.startsWith("172.") ||
+      location.hostname.endsWith(".local");
     const devGpsBtn = $("gps-dev-btn");
     if (devGpsBtn) {
       devGpsBtn.style.display = (isCity && isDev) ? "" : "none";
     }
 
     if (isCity) {
-      $("submit-btn").textContent = "Verify & Auto-Approve";
-      $("dropzone-label").textContent = "Snap photo of " + q.title + " (required)";
-      $("dropzone-sub").textContent = "GPS + AI will verify your photo";
+      $("dropzone-label").textContent = "📸 Snap photo matching the reference (required)";
+      $("dropzone-sub").textContent = "GPS + AI Detective will verify your location & camera angle";
       checkProofRequirement();
     } else if (isDaily) {
       $("submit-btn").textContent = "Complete Quest";
@@ -891,6 +922,12 @@
     overlay.classList.remove("open");
     document.body.style.overflow = "";
     if ($("green-quest-panel")) $("green-quest-panel").style.display = "none";
+    if ($("city-ref-photo-box")) $("city-ref-photo-box").style.display = "none";
+    if ($("city-ref-img")) $("city-ref-img").src = "";
+    if ($("modal-icon")) {
+      $("modal-icon").style.filter = "";
+      $("modal-icon").style.opacity = "";
+    }
   }
   $("modal-close").addEventListener("click", closeModal);
   $("done-close-btn").addEventListener("click", closeModal);
@@ -1198,7 +1235,7 @@
           p1Status.textContent = "✓ Within ±10m";
         }
         const dist = typeof res.gps.distanceMeters === "number" ? Math.round(res.gps.distanceMeters) : 0;
-        if (p1Detail) p1Detail.textContent = "Matched! ±" + dist + "m to " + q.title;
+        if (p1Detail) p1Detail.textContent = isCity ? ("Matched! ±" + dist + "m to landmark") : ("Matched! ±" + dist + "m to " + q.title);
       } else {
         if (p1Card) p1Card.classList.add("is-failed");
         if (p1Status) {
@@ -1231,7 +1268,7 @@
           p2Status.className = "puffin-trio-status status-passed";
           p2Status.textContent = "✓ ~" + aiScore + "% Match";
         }
-        if (p2Detail) p2Detail.textContent = (res.ai && res.ai.feedback) || (q.title + " recognized!");
+        if (p2Detail) p2Detail.textContent = (res.ai && res.ai.feedback) || (isCity ? "Landmark angle & features recognized!" : (q.title + " recognized!"));
       } else {
         if (p2Card) p2Card.classList.add("is-failed");
         if (p2Status) {
@@ -1864,6 +1901,7 @@
       Object.keys(CITY_LABELS).forEach((key) => {
         const cityLandmarks = (cityData.catalog && cityData.catalog[key] && cityData.catalog[key].landmarks) || [];
         const doneInCity = cityLandmarks.filter((l) => (cityData.doneIds || []).includes(l.id)).length;
+        const total = cityLandmarks.length;
         const card = document.createElement("button");
         card.type = "button";
         card.className = "city-choice-card glass glass-interactive";
@@ -1871,7 +1909,7 @@
           '<div class="glass-sheen"></div><div class="icon-chip">🏙️</div>' +
           '<h3>' + CITY_LABELS[key] + "</h3>" +
           '<div style="font-size:12px;color:var(--ink-soft);margin-top:4px;font-weight:600;">' +
-            (doneInCity >= 3 ? "🏆 Completed (3/3 rounds)" : "Round " + (doneInCity + 1) + " of 3 · Max 3 rounds") +
+            (doneInCity >= total ? "🏆 All " + total + " landmarks found!" : doneInCity + "/" + total + " landmarks found") +
           "</div>";
         card.addEventListener("click", () => chooseCity(key));
         picker.appendChild(card);
@@ -1881,40 +1919,61 @@
     }
 
     const landmarks = (cityData.catalog[cityData.city] && cityData.catalog[cityData.city].landmarks) || [];
-    const completedCount = landmarks.filter((l) => (cityData.doneIds || []).includes(l.id)).length;
-    const next = landmarks.find((l) => !(cityData.doneIds || []).includes(l.id));
-    const card = document.createElement("div");
-    card.className = "city-card glass";
+    const doneIds = cityData.doneIds || [];
+    const completedCount = landmarks.filter((l) => doneIds.includes(l.id)).length;
+    const total = landmarks.length;
 
-    if (!next || completedCount >= 3) {
-      card.innerHTML =
-        '<div class="city-card-head"><span class="fight-tag">' + CITY_LABELS[cityData.city] + ' · 3/3 Done</span>' +
-        '<button class="city-change-btn" id="city-change-btn" type="button">Change city</button></div>' +
-        '<div class="city-all-done">🏆 All 3 rounds completed! Pick another city to explore.</div>';
-    } else {
-      const roundNum = completedCount + 1;
-      const photoInner = '<span class="mystery-icon">' + (next.icon || "🏛️") + '</span>';
+    // City header with progress and change button
+    const header = document.createElement("div");
+    header.className = "city-card-head";
+    header.style.marginBottom = "12px";
+    header.innerHTML =
+      '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+        '<span class="fight-tag">' + CITY_LABELS[cityData.city] + '</span>' +
+        '<span class="fight-tag" style="background:rgba(79,209,192,.18);color:var(--kelp);border:1px solid rgba(79,209,192,.35);">' + completedCount + '/' + total + ' Found</span>' +
+      '</div>' +
+      '<button class="city-change-btn" id="city-change-btn" type="button">Change city</button>';
+    root.appendChild(header);
 
-      card.innerHTML =
-        '<div class="city-card-head">' +
-          '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
-            '<span class="fight-tag">' + CITY_LABELS[cityData.city] + '</span>' +
-            '<span class="fight-tag" style="background:rgba(79,209,192,.18);color:var(--kelp);border:1px solid rgba(79,209,192,.35);">Round ' + roundNum + '/3</span>' +
-          '</div>' +
-          '<button class="city-change-btn" id="city-change-btn" type="button">Change city</button>' +
-        '</div>' +
-        '<h3 class="fight-name">Mystery Landmark · Round ' + roundNum + '/3</h3>' +
-        '<div class="mystery-photo">' + photoInner + '<span class="mystery-badge">AI + GPS Verified</span></div>' +
-        '<p class="fight-desc">' + next.desc + '</p>' +
-        '<div class="fight-foot"><span class="fight-count">Find it, get GPS & snap a photo</span>' +
-        '<span class="reward-chip"><svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>+' + next.reward + "</span></div>" +
-        '<button class="btn btn-primary fight-claim" id="city-found-it-btn" type="button">📸 I found it!</button>';
+    if (completedCount >= total) {
+      const done = document.createElement("div");
+      done.className = "city-all-done";
+      done.textContent = "🏆 All " + total + " mystery landmarks found! Pick another city to explore.";
+      root.appendChild(done);
     }
-    root.appendChild(card);
+
+    // Landmark card grid (like Cove quest cards)
+    const grid = document.createElement("div");
+    grid.className = "quest-grid";
+    landmarks.forEach((l) => {
+      const isDone = doneIds.includes(l.id);
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "qcard glass glass-interactive" + (isDone ? " is-done" : "");
+      const statusChip = isDone
+        ? '<span class="status-chip status-done">✅ Found</span>'
+        : '<span class="status-chip status-new">Mystery</span>';
+      card.innerHTML =
+        '<div class="glass-sheen"></div>' +
+        '<div class="icon-chip" style="filter:blur(3px) saturate(1.2);opacity:.7;">' + (l.icon || "🏛️") + "</div>" +
+        '<div class="qtitle">Mystery Landmark</div>' +
+        '<div class="qdesc">' + l.desc + "</div>" +
+        '<div class="qcard-foot">' +
+          '<span class="reward-chip"><svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>+' + l.reward + "</span>" +
+          statusChip +
+        "</div>";
+      if (!isDone) {
+        card.addEventListener("click", () => openModal(l.id, false));
+      } else {
+        card.style.opacity = "0.55";
+        card.style.pointerEvents = "none";
+      }
+      grid.appendChild(card);
+    });
+    root.appendChild(grid);
+
     const changeBtn = $("city-change-btn");
     if (changeBtn) changeBtn.addEventListener("click", () => chooseCity(null));
-    const foundBtn = document.getElementById("city-found-it-btn");
-    if (foundBtn) foundBtn.addEventListener("click", () => openModal(next.id, false));
   }
 
   /* ================= FISH (CENTRAL PUFFIN MASCOT, GROWTH & WARDROBE) ================= */

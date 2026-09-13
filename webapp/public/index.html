@@ -475,6 +475,27 @@
   .pvp-status-completed{background:#DCF3E7;color:#146B45;}
   :root[data-theme="dark"] .pvp-status-completed{background:#123A2A;color:#5CE3A6;}
 
+  /* ============ FIGHT + SEGMENTED NAV MOBILE ============ */
+  @media (max-width:480px){
+    .segmented-nav-btn{font-size:12px;padding:9px 4px;gap:4px;}
+    .fight-page-head h1{font-size:19px;}
+    .fight-page-head p{font-size:12.5px;}
+    .fight-card{padding:16px;}
+    .fight-name{font-size:16px;}
+    .pvp-create-box{padding:16px;}
+    .pvp-stake-btn{font-size:11.5px;padding:7px 3px;}
+    .pvp-mode-btn{font-size:11.5px;padding:7px;}
+  }
+  @media (max-width:380px){
+    .segmented-nav-btn{font-size:11px;padding:8px 2px;gap:3px;}
+    .segmented-nav-btn > span:last-child{font-size:10px;}
+  }
+  @media (max-width:340px){
+    .segmented-nav-btn > span:last-child{display:none;}
+    .segmented-nav-btn > span:first-child{font-size:18px;}
+    .segmented-nav-btn{padding:8px 6px;}
+  }
+
   /* ============ CENTRAL PUFFIN & FISH TAB STYLES ============ */
   .fish-page-head{text-align:center;margin-top:18px;}
   .fish-page-head h1{font-size:22px;margin:6px 0 4px;}
@@ -556,6 +577,34 @@
   .catch-log-row{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--ink-soft);background:var(--surface-soft);border:1px solid var(--border-glass);border-radius:var(--radius-md);padding:8px 12px;}
   .catch-log-row .icon{font-size:17px;flex:none;}
   .catch-log-row .detail{margin-left:auto;font-family:"Space Mono";font-size:11px;color:var(--coral-dark);flex:none;}
+
+  /* ============ FISH TAB MOBILE ============ */
+  @media (max-width:480px){
+    .fish-page-head h1{font-size:19px;}
+    .fish-page-head p{font-size:12.5px;}
+    .puffin-sanctuary{padding:16px 12px 20px;border-radius:var(--radius-lg);}
+    .fishing-hole-container{padding:10px 8px;}
+    .catch-card{padding:14px;max-width:100%;}
+    .wardrobe-grid{grid-template-columns:repeat(3,1fr);gap:8px;}
+    .wardrobe-item-card{padding:10px 6px 8px;}
+    .wardrobe-item-icon{font-size:26px;}
+    .wardrobe-item-name{font-size:10.5px;}
+    .wardrobe-tab-btn{font-size:11.5px;padding:7px 3px;}
+    .catch-log-row{padding:7px 10px;gap:8px;font-size:12px;}
+    .catch-log-row .detail{font-size:10px;}
+    .growth-progress-sub{font-size:10px;}
+    .growth-tier-pill{font-size:11px;padding:4px 10px;}
+  }
+  @media (max-width:360px){
+    .puffin-sanctuary{padding:14px 10px 18px;}
+    .wardrobe-grid{grid-template-columns:repeat(3,1fr);gap:6px;}
+    .wardrobe-item-card{padding:8px 4px 6px;gap:4px;}
+    .wardrobe-item-icon{font-size:22px;}
+    .wardrobe-item-name{font-size:10px;}
+    .catch-log-row{padding:6px 8px;gap:6px;font-size:11.5px;}
+    .catch-log-row .detail{font-size:9.5px;}
+    .growth-progress-sub{font-size:9px;}
+  }
 
   /* ============ PROFILE AWARDS SHELF STYLES ============ */
   .profile-awards{
@@ -681,6 +730,55 @@
   .modal-reward{display:flex;align-items:center;gap:8px;margin-bottom:18px;}
   .modal-reward svg{width:22px;height:22px;}
   .modal-reward span{font-family:"Space Mono";font-weight:700;color:var(--coral-dark);}
+
+  /* City Challenge Reference Photo in Modal */
+  .city-ref-photo-card{
+    border-radius:var(--radius-lg);
+    border:1px solid var(--border-glass);
+    background:var(--surface-soft);
+    padding:12px;
+    margin-bottom:14px;
+    box-shadow:0 4px 16px var(--shadow);
+  }
+  .city-ref-photo-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:8px;
+  }
+  .city-ref-badge{
+    font-size:11.5px;
+    font-weight:700;
+    color:var(--coral-dark);
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+  }
+  :root[data-theme="dark"] .city-ref-badge{color:var(--coral);}
+  .city-ref-hint{
+    font-size:11px;
+    color:var(--ink-faint);
+    font-style:italic;
+  }
+  .city-ref-img-wrap{
+    position:relative;
+    width:100%;
+    height:200px;
+    border-radius:var(--radius-md);
+    overflow:hidden;
+    background:rgba(0,0,0,.25);
+    border:1px solid var(--border-glass-soft);
+  }
+  .city-ref-img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+    transition:transform .3s ease;
+  }
+  .city-ref-img-wrap:hover .city-ref-img{
+    transform:scale(1.02);
+  }
 
   .dropzone{
     border:2px dashed var(--border-glass);border-radius:var(--radius-lg);padding:20px;text-align:center;cursor:pointer;
@@ -1306,13 +1404,13 @@
           <div class="block-head" style="margin-top:8px;">
             <div>
               <h2>🏙️ City Challenge <span class="section-badge section-badge-ai">🤖 AI</span></h2>
-              <p>Find mystery landmarks! GPS + photo verified by AI · Max 3 rounds.</p>
+              <p>Find mystery landmarks! GPS + photo verified by AI · 5 per city.</p>
             </div>
           </div>
           <div id="city-challenge-body"></div>
         </div>
 
-        <!-- Panel 2: Fight Puffins (PvP Rooms: Friend Challenge or Random Match) -->
+        <!-- Panel 2: Fight Puffins (PvP) — Coming Soon -->
         <div class="fight-carousel-panel" id="fight-panel-pvp">
           <div class="block-head" style="margin-top:8px;">
             <div>
@@ -1321,21 +1419,27 @@
             </div>
           </div>
 
-          <!-- Create Challenge Card -->
+          <!-- Coming Soon Placeholder -->
+          <div style="text-align:center;padding:40px 20px 50px;">
+            <svg viewBox="0 0 64 64" style="width:80px;height:80px;margin:0 auto 16px;display:block;filter:drop-shadow(0 10px 16px rgba(0,0,0,.15));animation:bob 4.5s ease-in-out infinite;"><use href="#i-puffin"/></svg>
+            <h3 style="font-size:18px;margin:0 0 8px;">Coming soon!</h3>
+            <p style="color:var(--ink-soft);font-size:13.5px;max-width:32ch;margin:0 auto;line-height:1.5;">
+              PvP duels are being prepared. Your puffin is training hard for battle! 🥊
+            </p>
+          </div>
+
+          <!-- PvP content commented out for future launch
           <div class="pvp-create-box glass">
             <h3 style="margin:0 0 6px;font-size:16px;">Create a Fight Room</h3>
             <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 12px;">Wager Puffins on a speed-race quest.</p>
-
             <div class="pvp-mode-toggle">
               <button class="pvp-mode-btn active" id="pvp-mode-friend" type="button">👤 Challenge Friend</button>
               <button class="pvp-mode-btn" id="pvp-mode-random" type="button">🎲 Random Match</button>
             </div>
-
             <div id="pvp-friend-input-wrap">
               <label style="font-size:11.5px;font-weight:700;color:var(--ink-faint);text-transform:uppercase;">Opponent Username</label>
               <input type="text" id="pvp-opponent-username" class="glass-input no-count" placeholder="e.g. SaltyWaddler" style="margin-top:4px;" />
             </div>
-
             <div style="margin-top:12px;">
               <label style="font-size:11.5px;font-weight:700;color:var(--ink-faint);text-transform:uppercase;">Wager Stake (Per Player)</label>
               <div class="pvp-stake-row">
@@ -1345,44 +1449,14 @@
                 <button class="pvp-stake-btn" data-stake="100" type="button">100 🐧</button>
               </div>
             </div>
-
             <button class="btn btn-primary" id="pvp-create-btn" type="button" style="width:100%;margin-top:6px;">
               ⚔️ Send Challenge (<span id="pvp-stake-label">10</span> 🐧)
             </button>
           </div>
-
-          <!-- Invitations received -->
-          <div id="pvp-invites-section" style="margin-top:18px;">
-            <div class="block-head" style="margin-bottom:8px;">
-              <div>
-                <h3 style="font-size:15px;margin:0;">📬 Fight Invitations</h3>
-                <p style="font-size:12px;color:var(--ink-soft);margin:2px 0 0;">Friends challenging you to a quest duel</p>
-              </div>
-            </div>
-            <div class="pvp-list" id="pvp-invites-list"></div>
-          </div>
-
-          <!-- Active Fights -->
-          <div id="pvp-active-section" style="margin-top:18px;">
-            <div class="block-head" style="margin-bottom:8px;">
-              <div>
-                <h3 style="font-size:15px;margin:0;">🔥 Active Duels</h3>
-                <p style="font-size:12px;color:var(--ink-soft);margin:2px 0 0;">First one to complete the quest claims the pot!</p>
-              </div>
-            </div>
-            <div class="pvp-list" id="pvp-active-list"></div>
-          </div>
-
-          <!-- Public Rooms waiting for random opponent -->
-          <div id="pvp-public-section" style="margin-top:18px;">
-            <div class="block-head" style="margin-bottom:8px;">
-              <div>
-                <h3 style="font-size:15px;margin:0;">🌐 Open Matchmaking Rooms</h3>
-                <p style="font-size:12px;color:var(--ink-soft);margin:2px 0 0;">Jump in and fight random puffineers</p>
-              </div>
-            </div>
-            <div class="pvp-list" id="pvp-public-list"></div>
-          </div>
+          <div id="pvp-invites-section" style="margin-top:18px;"></div>
+          <div id="pvp-active-section" style="margin-top:18px;"></div>
+          <div id="pvp-public-section" style="margin-top:18px;"></div>
+          -->
         </div>
 
       </div>
@@ -1630,6 +1704,18 @@
 
     <div id="modal-body-idle">
       <div class="modal-quest-type-pill" id="modal-quest-type-pill"></div>
+
+      <!-- Mystery Landmark Target Reference Photo -->
+      <div class="city-ref-photo-card" id="city-ref-photo-box" style="display:none;">
+        <div class="city-ref-photo-head">
+          <span class="city-ref-badge">📸 Target Landmark & Camera Angle</span>
+          <span class="city-ref-hint">Find & match this view!</span>
+        </div>
+        <div class="city-ref-img-wrap">
+          <img id="city-ref-img" class="city-ref-img" src="" alt="Target reference view" loading="lazy" />
+        </div>
+      </div>
+
       <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload photo or video for this quest">
         <svg viewBox="0 0 24 24"><use href="#i-camera"/></svg>
         <p id="dropzone-label">Tap to snap or upload a photo or video (optional)</p>
