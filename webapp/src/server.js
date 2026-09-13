@@ -1,5 +1,14 @@
 "use strict";
 
+// Automatically load local .env file if available in Node 20.6+
+if (typeof process.loadEnvFile === "function") {
+  try {
+    process.loadEnvFile();
+  } catch (e) {
+    // .env file is optional in cloud environments like Render
+  }
+}
+
 const path = require("path");
 const express = require("express");
 const cookieParser = require("cookie-parser");
@@ -16,19 +25,18 @@ const fishRoutes = require("./routes/fish");
 const profileRoutes = require("./routes/profile");
 const cityRoutes = require("./routes/city");
 
-// One-time cleanup for the "Fun Quests no longer wait on a real approval"
-// rule change: anything left pending from before this deploy is finalized
-// as bot-accepted so nothing stays stuck forever.
-async function finalizeOrphanedPending() {
-  const { rows } = await pool.query("SELECT id FROM submissions WHERE status = 'pending'");
-  for (const row of rows) {
-    await finalizeSubmission(row.id);
-  }
-  if (rows.length) console.log("Finalized " + rows.length + " orphaned pending submission(s) from before the review-rule change.");
-}
-
 const app = express();
 app.set("trust proxy", 1);
+app.set("etag", false);
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/")) {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Surrogate-Control", "no-store");
+  }
+  next();
+});
 app.use(express.json({ limit: "2mb" }));
 app.use(cookieParser());
 
@@ -56,11 +64,33 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 
-initSchema()
+// A serverless database (Neon) may be suspended when the app boots, and the
+// first connection has to wait for its compute to wake up. Retry a few times
+// before giving up so a cold start is not mistaken for a broken database.
+async function withRetry(label, fn, attempts = 5) {
+  for (let i = 1; i <= attempts; i += 1) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === attempts) throw err;
+      const waitMs = 1000 * i;
+      console.warn(label + " failed (attempt " + i + "/" + attempts + "): " + err.message + ". Retrying in " + waitMs + "ms.");
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+  }
+}
+
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled Rejection:", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+});
+
+withRetry("Database connection", () => initSchema())
   .then(() => ensureBotUsers())
-  .then(() => finalizeOrphanedPending())
   .then(() => {
-    app.listen(PORT, () => console.log("Puffin Quest listening on port " + PORT));
+    app.listen(PORT, "0.0.0.0", () => console.log("Puffin Quest listening on http://localhost:" + PORT));
   })
   .catch((err) => {
     console.error("Failed to initialize database schema:", err);

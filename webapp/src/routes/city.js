@@ -5,15 +5,30 @@ const { pool } = require("../db");
 const { requireAuth } = require("../auth");
 const { refreshUser } = require("../gamestate");
 const content = require("../content");
+const { getAiVisionStatus } = require("../ai-vision");
 
 const router = express.Router();
+
+function toArray(val) {
+  if (Array.isArray(val)) return val;
+  if (!val || typeof val !== "string" || val === "{}") return [];
+  if (val.startsWith("{") && val.endsWith("}")) {
+    return val.slice(1, -1).split(",").map((s) => s.trim().replace(/^"|"$/g, "")).filter(Boolean);
+  }
+  return [];
+}
+
+router.get("/ai-status", (req, res) => {
+  res.json(getAiVisionStatus());
+});
 
 router.get("/", requireAuth, async (req, res) => {
   const user = await refreshUser(req.user);
   res.json({
     city: user.city || null,
     catalog: content.CITY_CHALLENGES,
-    doneIds: user.fun_done_ids || []
+    doneIds: toArray(user.fun_done_ids),
+    aiStatus: getAiVisionStatus()
   });
 });
 

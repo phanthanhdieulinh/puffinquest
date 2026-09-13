@@ -1,0 +1,684 @@
+====================================================================
+PUFFIN QUEST — FULL PROJECT LOG AND FEATURE DESCRIPTION
+====================================================================
+Prepared: September 5, 2026 (Updated: September 12, 2026)
+Purpose: A plain-language record of everything built, changed, and
+fixed for Puffin Quest so far, written so someone who does not read
+code can understand what the app does and how it got here.
+
+Live site:        https://puffinquest.greenuplabs.com
+                   (also reachable at https://puffin-quest.onrender.com)
+Source code:       https://github.com/phanthanhdieulinh/puffinquest
+Hosting:           Render.com (free tier) — one web server + one database
+Domain/DNS:        Hostinger (domain purchased/managed there)
+
+
+====================================================================
+1. WHAT PUFFIN QUEST IS
+====================================================================
+Puffin Quest is a web app (works in any phone or computer browser,
+no install needed) that turns small everyday good habits into a
+game. Users ("puffineers") complete little real-life "quests" —
+drink water, take a walk, be kind to someone, go find a landmark in
+their city — and earn a virtual currency called "Puffins." Some
+quests are instantly rewarded; others are shown to other real users
+in a swipeable feed so people can cheer each other on.
+
+The whole thing is themed around a cartoon puffin bird mascot, with
+a soft, rounded "liquid glass" visual style (translucent frosted-glass
+cards, pastel mint/coral/gold colors).
+
+
+====================================================================
+2. HOW THIS PROJECT EVOLVED (CHRONOLOGICAL LOG)
+====================================================================
+
+PHASE 0 — Starting point
+------------------------
+The project began as an existing single-file prototype (one HTML
+file) that ran entirely in the browser with no server or accounts.
+All progress was stored only on one device, in that browser's local
+storage. Nothing was shared between users.
+
+PHASE 1 — Small gameplay tweaks to the prototype
+-------------------------------------------------
+- Changed the rule for quest photos/captions: both became OPTIONAL,
+  each adding a small bonus reward (+2 Puffins for a photo, +1 for a
+  caption) instead of a photo being required.
+- Added the ability to change your profile picture and profile cover
+  photo from the "Bird" (profile) tab, with an edit (pencil) button.
+
+PHASE 2 — Turning it into a real, hosted website
+--------------------------------------------------
+This was the big rebuild. The user asked for "a real website... that
+I can use online," with real accounts and hosting via GitHub/a free
+server, using their own domain.
+
+What was built:
+- A real backend server (the "brain" of the app that runs on a
+  computer in the cloud, not in the visitor's browser) using
+  Node.js and a web framework called Express.
+- A real database (PostgreSQL) that permanently stores every user's
+  account, progress, photos, and history — so your progress is the
+  same no matter what device or browser you use.
+- Real user accounts: register with a username and password
+  (passwords are scrambled/"hashed" before storage, so even the
+  app's own database never holds a readable password).
+- A genuine multi-person "Review Cove": instead of the old prototype
+  faking 3 anonymous reviewers, real registered users could swipe
+  through other people's submitted quest photos and approve or skip
+  them. Two permanent "bot" accounts were added so a submission is
+  never stuck waiting forever even if no other real person is
+  online — 2 bot approvals plus 1 real approval was the original
+  rule (this was changed again later — see Phase 5).
+- The code was pushed to a GitHub repository (a cloud-hosted, version-
+  controlled copy of the code) so it has a permanent history and can
+  redeploy automatically.
+- Deployed to Render.com, a free hosting service. Render was set up
+  to automatically rebuild and redeploy the live site every time new
+  code is pushed to GitHub.
+- Connected the user's own domain (greenuplabs.com, managed at
+  Hostinger) so the site is reachable at
+  https://puffinquest.greenuplabs.com with a proper HTTPS padlock
+  (secure connection), not just the default Render web address.
+- Along the way, fixed a deployment mix-up (the very first Render
+  setup had a typo in its start command and the wrong project folder
+  selected) by redoing the setup using Render's "Blueprint" feature,
+  which reads a configuration file from the code repository and sets
+  everything up automatically and correctly.
+- Fixed a DNS conflict: the custom domain briefly failed to work
+  because Hostinger's own website hosting feature was still
+  "claiming" that web address behind the scenes, blocking the
+  correct DNS record from taking effect. Removing that unused
+  Hostinger website slot fixed it.
+
+PHASE 3 — Social features and account safety
+-----------------------------------------------
+- Usernames were made unique (no two accounts can share one).
+- Added optional social account linking: during sign-up (or later,
+  from the profile edit panel), a user can tick Facebook, Instagram,
+  and/or LinkedIn. The app automatically builds the correct profile
+  link for each (e.g. facebook.com/yourusername) — no need to paste
+  a URL by hand.
+- Those linked accounts show up as small clickable logo icons (using
+  the real, brand-colored Facebook/Instagram/LinkedIn logos) on a
+  user's profile and on their photo cards in the review feed, so
+  other people can visit their real social profiles.
+- Along the way, a testing mishap was investigated and disclosed:
+  while testing photo uploads, a stray photo of a real person's face
+  appeared in a local test database. This was immediately
+  investigated, the file was deleted, and all test data was wiped.
+  The most likely explanation is that the online testing tool used
+  to click through the app automatically filled in a placeholder
+  image when a "take a photo" button was clicked, rather than any
+  real camera being accessed. This never affected the live website —
+  it happened only in a temporary local copy of the database used
+  for testing on the developer's own machine.
+
+PHASE 4 — Landing page, shareable links, branding fixes
+-----------------------------------------------------------
+- Rebuilt a proper "landing page" (a public marketing page explaining
+  what Puffin Quest is) that is reachable at all times — by clicking
+  the logo in the top-left corner, or by visiting
+  puffinquest.greenuplabs.com/intro directly — even for visitors who
+  are not signed in and have no account.
+- Made every user's profile shareable as a real, public web link:
+  puffinquest.greenuplabs.com/bird/<username> (for example,
+  .../bird/linhphantastic). Anyone can open that link and see the
+  public profile (stats and recent quest photos) without needing an
+  account themselves.
+- Fixed a display bug where, if a visitor without an account opened
+  someone's shared profile link, the sign-in screen would confusingly
+  show through on top of the profile. Now the shared profile shows
+  cleanly on its own, with the sign-in screen appearing only after
+  the visitor closes it.
+- Replaced the emoji-based Facebook/Instagram/LinkedIn icons with the
+  real, official-style brand logos.
+- Introduced the two permanent "bot" review accounts described above
+  (Phase 2) plus a "send this quest to a friend" feature: a submitter
+  could copy a link to one specific pending quest and text/message it
+  to a friend, who would be asked to create an account (if they
+  didn't have one) before being shown that one quest to review.
+- Custom favicon: the small icon shown in a browser tab. The user
+  supplied a logo file; it turned out to be a design-tool export that
+  bundled the image inside a complex layered file rather than a plain
+  picture, so it was rendered properly in a browser, then cropped and
+  saved as a clean square icon matching the site's color palette.
+
+PHASE 5 — Documentation
+--------------------------
+- Produced a combined Business Requirements Document (BRD) and
+  Software Requirements Specification (SRS) as a Word document,
+  describing the product's business goals and detailed technical
+  requirements, grounded in the actual live system.
+
+PHASE 6 — Reworking the review and reward rules
+------------------------------------------------
+The review/reward system was substantially redesigned:
+- Once a quest is marked "done," it disappears from the quest list
+  entirely instead of staying visible with a strikethrough. A new
+  shuffle/refresh button lets a user swap out today's 3 "Daily Quests"
+  for a new random set at any time.
+- The database's "what day is it for this user" check was fixed so
+  daily quest completion now correctly stays remembered throughout
+  the day.
+
+PHASE 7 — Liquid Glass UI Overhaul & Quest System Separation
+-------------------------------------------------------------
+- Upgraded the design system using Apple's Liquid Glass aesthetics:
+  frosted translucent materials (backdrop-filter: blur(14px)), specular
+  sheen reflections on top edges, glowing ambient depth, and tactile
+  interactive cards.
+- Clearly separated the Quest hub into 2 distinct rules and categories:
+  1. "🌤️ Today's Quest": Habits people can finish each day with instant
+     Puffin rewards — no one needs to check or review them.
+  2. "🫧 Cove Quest" (renamed from "Cool & Fun Quests"): One-off adventures
+     where people need to upload proof (photo, video, or GPS location).
+     These quests move to Cove for the community to approve or reject.
+     Official subtitle: "One-off adventures, worth extra Puffins when
+     approved by community."
+- In the quest submission modal:
+  - Added an "Automatically post to your bird profile" toggle checkbox.
+    It is automatically clicked (checked by default) upon opening the
+    modal, but users can unclick it if they want to keep the quest private.
+  - Added full support for uploading video/photo proof and acquiring live
+    browser Geolocation GPS proof.
+
+PHASE 8 — Connection & Account Creation Stability Fixes
+-------------------------------------------------------
+Resolved issues where users could not connect or create accounts:
+- HTTP 304 Caching: Express web server was generating ETags on API
+  responses, causing browsers to receive empty 304 Not Modified responses
+  when fetching fresh user data. Fixed by disabling ETags (app.set("etag", false)),
+  enforcing Cache-Control: no-store across all API routes, and requesting
+  cache: "no-store" in client fetches.
+- PostgreSQL Array Column Parsing: Array columns (titles, badges,
+  daily_done_ids, fun_done_ids) returned as raw strings (e.g. "{}") in
+  pg-mem and certain pg driver setups, crashing frontend array calls
+  (.forEach). Fixed by configuring an OID 1009 array parser in db.js and
+  adding universal toArray() sanitization across gamestate, quests, and
+  city route handlers.
+- Correlated Review Subqueries: Decoupled subqueries in the Cove review
+  flow to ensure fast, reliable queries across both local development
+  and production Render/Neon PostgreSQL.
+
+PHASE 9 — City Challenge Auto-Approval & 3-Puffin Verification Patrol (in Fight part)
+-------------------------------------------------------------------------------------
+Per user instructions, the City Challenge (located inside the "Fight" tab)
+was upgraded with automated AI verification and location proximity matching:
+- Located in the Fight Part: The City Challenge lives in the "Fight" tab
+  (⚔️ Fight), where players choose their city (Hanoi, Ho Chi Minh City,
+  or Singapore) to discover mystery landmarks behind blurred zoom clues.
+- Two Strict Criteria for Instant Auto-Approval:
+  1. Criterion 1 (AI Picture Fit): Uploaded photo is analyzed by an AI
+     vision detection engine against the landmark's architectural profile
+     (structural features, color distribution, visual entropy). It must
+     fit ~80–90% (threshold >= 80%) to pass.
+  2. Criterion 2 (Location Match within +-10 meters): The player's GPS
+     location is verified against real-world landmark coordinates using the
+     Haversine formula. Strictly enforces a maximum distance tolerance of
+     +-10 meters.
+  - If both criteria match, the challenge is AUTO-APPROVED immediately
+    within the system — no Cove community review or human check is needed!
+- Animated 3-Puffin Verification Loading Sequence:
+  After submitting, exactly 3 animated puffins appear in a sequential
+  loading patrol:
+  - Puffin 1 (GPS Scout 🐧🧭): Checks if location is within +-10m. If
+    matched, marks "✓ Within +-10m". If not, notes the distance (e.g.
+    "⚠️ 556m away") and STILL proceeds to Puffin 2 so the user gets full
+    feedback on their photo.
+  - Puffin 2 (AI Detective 🐧🔍): Runs AI detection and reports visual
+    similarity (e.g. "✓ ~94% Match" or "✕ Under 80%").
+  - Puffin 3 (Chief Puffin 🐧🌟): Issues the final verdict:
+    - Auto-Approved: Awards Puffins (+40 to +43), bursts confetti, updates
+      balance, advances user streak, and unlocks the next landmark.
+    - Rejected: Details exactly what needs adjustment (GPS, photo, or both)
+      and provides a "🔄 Try Again / Retake Photo" button so the challenge
+      can be redone immediately until finished.
+- Testing Convenience Aid: Added a "📍 Test at Landmark (±0m)" button in
+  the modal so testers and players can simulate exact landmark coordinates
+  without having to travel to Vietnam or Singapore.
+
+PHASE 10 — Fight 3-Way Carousel, Fish Puffin Mascot & Wardrobe, Profile Awards Shelf
+------------------------------------------------------------------------------------
+Per user instructions, major enhancements were made across Fight, Fish, and Profile:
+1. Fight Tab 3-Option Liquid Glass Sliding Carousel:
+   - Upgraded Fight navigation into a smooth segmented 3-way carousel:
+     a. "⏱️ Timely Challenge": Weekly, Monthly, and Seasonal sprint challenges
+        granting Puffin bounties, exclusive badges, and prestigious titles.
+     b. "🏙️ City Challenge": Mystery landmark discovery with AI visual analysis
+        and +-10m GPS tolerance. Explicitly excluded from the user's Bird profile journal.
+     c. "⚔️ Fight Puffins": Real-time PvP duel matchmaking. Players create duel rooms,
+        choose a stake (10, 25, 50, 100 Puffins), challenge a specific friend's username
+        or queue for random matchmaking. Opponents receive invitations they can accept
+        or decline. Both players race on a shared quest; the first to finish claims the pot!
+2. Fish Tab: Central Puffin Mascot, Growth, and Wardrobe Dress-Up:
+   - Central Animated Puffin Mascot: Positioned in the middle of the screen with
+     custom SVG rendering, animated breathing, and dynamic growth scaling.
+   - Growth & Feeding: Catching fish automatically feeds the puffin (+1 to +3 feed points),
+     increasing its growth tier from Tiny Fledge (Lv. 1) to Plump Puff (Lv. 2),
+     Chonky Waddler (Lv. 3), and Colossal Puffin (Lv. 4).
+   - Fishing Hole Directly Beneath: The fishing pond and cast button are positioned
+     directly underneath the puffin mascot.
+   - Cute Wardrobe Collectibles: Reeling in items unlocks cute accessories:
+     * Hats: Sailor Cap ⚓, Daisy Wreath 🌼, Festive Hat 🎩
+     * Clothes: Cozy Red Scarf 🧣, Nautical Vest 🦺, Hero Cape 🦸
+     * Shoes: Yellow Rain Boots 🥾, Aqua Kicks 👟, Tiny Skates ⛸️
+     Equipping an item layers it directly onto the central Puffin mascot!
+   - NO Badges or Titles in Fish Tab: Completely removed all badge cases and title
+     listings from the Fish tab per user request (players will not see badges/titles here).
+3. Profile ("Bird" tab) Awards Shelf:
+   - Positioned directly underneath the 4 stat counters (.profile-stats) on both
+     the private profile page and public shared profile modals.
+   - Houses the user's earned badges (Waddle Star, Tide Champion, Golden Plume) and titles,
+     which are earned exclusively by completing weekly, monthly, and seasonal fights.
+   - Interactive title equip: clicking any earned title immediately sets it on the profile banner.
+
+
+PHASE 11 — Bird Profile Deletion, 4 Daily Quests, & Green Donation Map
+----------------------------------------------------------------------
+- Bird Profile Custom Deletion: Added a dedicated, glass-styled "🗑️ Delete" button
+  to every item in the Bird profile journal so players can remove whatever entries
+  they choose from their profile history and public view.
+- 4 Today's Quests Always: Configured deterministic selection and daily rerolling to
+  always present exactly 4 daily quests (incorporating a guaranteed green eco-quest).
+- Green Cove Quests & Comprehensive Interactive Map:
+  - Added "Warm Feathers: Donate Good Wear" and "Spark Safe: Battery Nest" with
+    30 verified donation and e-waste collection spots across Hà Nội, TP. Hồ Chí Minh,
+    Bình Dương, Đà Nẵng, and Singapore (via Cloop & Pass-It-On).
+  - Built-in interactive Leaflet map with city filter chips, nearest spot calculation
+    using Haversine formula, and instant GPS check-in.
+
+PHASE 12 — Cove Quests 3-Way Tabs & Culture Quests with Heritage Map
+---------------------------------------------------------------------
+- 3-Way Segmented Tabs in Priority Order: "🌿 Green", "🏛️ Culture", and "🎲 Random".
+- Fixed carousel track sliding translation math so sliding left/right properly reveals
+  each of the 3 panels.
+- Added Culture Quests ("Museum Wanderer: Echoes of Time", "Morning Pho & Culture",
+  "Heritage Pagodas & Shrines", "Artisan Quarter Walk") with 14 pinned museum and
+  cultural spots across Vietnam and Singapore.
+
+PHASE 13 — 2x2 Phone Grid for Today's Quests & Profile Post Persistence
+------------------------------------------------------------------------
+- 2x2 Grid on Mobile: Today's Quest grid dynamically adjusts to a compact 2x2 tile
+  layout on mobile screens (max-width: 480px).
+- Profile Post Toggle Persistence: Unchecking "Automatically post to your bird profile"
+  persists across sessions via localStorage and cleanly excludes the submission from
+  the user's public and private Bird profile journals.
+
+PHASE 14 — Cove Community Proof: Mandatory Picture & "Share GPS (optional)"
+----------------------------------------------------------------------------
+Per user instructions, Cove quests going to the community strictly enforce picture proof:
+- Picture Required for Community: To submit a Cove quest to community review, players
+  MUST take or upload a picture (photo or video thumbnail). Submissions without a picture
+  are rejected by both frontend validation and backend API (HTTP 400: "To go to the
+  community, you must take a picture. GPS is optional.").
+- GPS Strictly Optional: GPS verification provides a +1 bonus Puffin reward, but GPS
+  alone does NOT enable submission without a photo.
+- Dedicated Note & Button:
+  - The GPS action button is explicitly labeled "📍 Share GPS (optional)".
+  - A glassmorphic proof note in the modal clearly informs the player:
+    "📸 To go to the community, you must take a picture · 📍 Share GPS (optional)".
+  - Dropzone label and subtext highlight: "Take or upload a picture (required for community)"
+    and "To go to the community, you must take a picture. Share GPS (optional) for bonus!".
+
+PHASE 15 — Review Rewards: 1 Puffin Base (Reject or Approve) + 1 Feedback Bonus
+--------------------------------------------------------------------------------
+Per user instructions, reviewing community quests in Cove rewards players fairly and encourages helpful comments:
+- Base Review Reward: Whether a player chooses to **Approve** or **Reject** a submission
+  ("no wonder the reject or approve"), they always receive **+1 Puffin** base reward.
+- Feedback or Encouragement Bonus: If the reviewer adds feedback or encouragement in the
+  comment field, they receive an additional **+1 Puffin** (earning **+2 Puffins total**).
+- Feedback Preservation: Feedback notes are saved with the review regardless of decision,
+  allowing creators to learn why a proof was rejected or celebrate kind encouragement.
+- Clear User Feedback:
+  - Header, placeholder, and action buttons explicitly display the rewards:
+    "✓ Approve (+1 🪙)" and "✕ Reject (+1 🪙)", with placeholder "Feedback or encouragement (+1 bonus Puffin!)".
+  - Dynamic toast notifications detail: "+2 Puffins (includes +1 feedback bonus!)" or "+1 Puffin reward".
+
+
+====================================================================
+3. FEATURES IN DETAIL (WHAT THE APP CAN DO TODAY)
+====================================================================
+
+3.1 Accounts
+------------
+- Sign up with a username (3–20 characters) and a password (at least
+  6 characters).
+- Usernames are guaranteed unique.
+- Passwords are never stored in plain, readable form.
+- A logged-in session lasts up to 180 days before needing to sign in
+  again.
+- There is currently no "forgot password" self-service reset — this
+  is a known gap for later.
+
+3.2 Today's Quest
+-----------------
+- Everyday healthy and kind habits (drinking water, a short walk,
+  eating veggies, 10 minutes of exercise, tidying up, etc.) that users
+  can finish each day.
+- Rewarded INSTANTLY — no one needs to check or review them.
+- Reward is +1 to +5 Puffins (+optional bonuses: +2 for photo, +1 for
+  caption, +1 for GPS).
+- Once a Today's Quest is completed, it drops out of the active grid.
+- A shuffle/reroll button lets the user swap today's quests for a fresh
+  random 3 at any time.
+- Resets automatically every day.
+
+3.3 Cove Quest (formerly Cool & Fun Quests)
+-------------------------------------------
+- One-off adventures, worth extra Puffins when approved by community
+  (16–35 base Puffins).
+- Users upload proof to verify completion: to go to the community, you must take
+  a picture (mandatory photo or video thumbnail). GPS is optional and grants a
+  +1 bonus Puffin.
+- Explicit note on GPS: "📸 To go to the community, you must take a picture · 📍 Share GPS (optional)".
+- The GPS button is explicitly named "📍 Share GPS (optional)".
+- Submissions are moved to the community Cove for other puffineers to
+  review, approve, or reject.
+- In the submission modal, an "Automatically post to your bird profile"
+  toggle checkbox is checked by default, but users can unclick it if
+  they prefer to keep the quest unlisted on their public profile (persisted via localStorage).
+- After completing or submitting, a shareable link can be sent to a
+  friend to cheer or review directly.
+
+3.4 Community Cove (the review deck)
+------------------------------------
+- The community review feed where puffineers inspect fellow players'
+  Cove Quest proof submissions.
+- Swipe right (or tap "✓ Approve (+1 🪙)") to approve authentic proof; swipe
+  left (or tap "✕ Reject (+1 🪙)") to reject.
+- Reviewer Rewards:
+  * Base Reward: Reviewing any submission grants +1 Puffin, regardless of whether
+    the player decides to Approve or Reject ("no wonder the reject or approve").
+  * Feedback or Encouragement Bonus: If the reviewer enters feedback or words of
+    encouragement, they receive an additional +1 Puffin (+2 Puffins total).
+- Approving authentic proof advances the submission towards community finalization
+  (2 approvals needed) and grants the creator their full Puffin bounty upon finalization.
+- Supports tactile stamps, feedback comments, and smooth glass animations.
+
+3.5 Fight Tab (3-Option Carousel)
+----------------------------------
+- Segmented Liquid Glass 3-way navigation:
+  1. "⏱️ Timely Challenge": Three ongoing bonus challenges running in parallel:
+     - Weekly (Waddle Sprint): complete 5 quests this week. Awards Puffin bounty +
+       🌟 Waddle Star badge + 🪶 Swift Waddler title.
+     - Monthly (Puffin Tide): earn 150 Puffins this month. Awards Puffin bounty +
+       🌊 Tide Champion badge + 🪶 Puffin Monarch title.
+     - Seasonal (Golden Feather Rally): reach a 14-day daily streak this season.
+       Awards Puffin bounty + 🪶 Golden Plume badge + 🪶 Century Waddler title.
+     Each can be "claimed" once its target is reached, and automatically resets at
+     the start of its next period.
+  2. "🏙️ City Challenge": Mystery landmark discovery with AI vision matching and
+     +-10m GPS tolerance (detailed in 3.6). Explicitly excluded from Bird profile.
+  3. "⚔️ Fight Puffins": Real-time PvP duel matchmaking. Players can create custom
+     duel challenges, wager stakes (10, 25, 50, 100 Puffins), invite specific friends
+     or queue for random matchmaking. Opponents can accept or reject invitations. Both
+     players race on a shared quest; first to finish wins the full wager pot!
+
+3.6 City Challenge (in the Fight part)
+---------------------------------------
+- Located in the "Fight" tab (⚔️ Fight).
+- A user picks one of three real cities: Hanoi, Ho Chi Minh City, or
+  Singapore.
+- Shows one mystery landmark at a time with a blurred, zoomed clue and a
+  riddle-like hint.
+- Automatically approved within the system when matching 2 strict criteria:
+  1. AI Picture Fit: Uploaded photo is analyzed with AI to ensure it
+     fits the original landmark picture (~80–90% fit, threshold >= 80%).
+  2. Location Proximity Match: The player's GPS coordinates must match the
+     landmark location within +-10 meters tolerance.
+  - When both criteria pass: AUTO-APPROVED immediately without needing
+    Cove community review or human check!
+- Animated 3-Puffin Verification Patrol:
+  Upon submission, 3 animated puffins inspect the entry in sequence:
+  - Puffin 1 (GPS Scout): Verifies location proximity (within +-10m).
+    If not matched, notes the distance and moves to Puffin 2.
+  - Puffin 2 (AI Detective): Scans photo and evaluates visual fit (~80-90%).
+  - Puffin 3 (Chief Puffin): Final verdict — awards +40 to +43 Puffins and
+    celebrates with confetti if approved; if rejected, provides detailed
+    feedback and a "Try Again" button so the player can redo the challenge
+    immediately until finished.
+- Testing Aid: Includes a "📍 Test at Landmark (±0m)" button in the modal
+  to simulate exact landmark coordinates during testing.
+- Profile Journal Exclusion: City Challenges are exclusively challenges and
+  never appear on the user's Bird profile journal.
+
+3.7 Fish Tab: Central Puffin Mascot, Growth & Wardrobe Dress-Up
+--------------------------------------------------------------
+- Central Animated Puffin Mascot: A cute puffin mascot sits in the center of
+  the screen and responds to feeding and dress-up.
+- Growth Mechanism: Feeding the puffin fish increases its feed points and
+  visual scale across growth tiers (Tiny Fledge, Plump Puff, Chonky Waddler,
+  Colossal Puffin).
+- Fishing Hole Underneath: The fishing hole is positioned directly under the
+  puffin mascot. Spending 15 Puffins to "cast a line" reels in fresh fish
+  (which feed the puffin and yield coins) or cute wardrobe items.
+- Cute Wardrobe Accessories: Unlocks equippable items:
+  * Hats: Sailor Cap ⚓, Daisy Wreath 🌼, Festive Hat 🎩
+  * Clothes: Cozy Red Scarf 🧣, Nautical Vest 🦺, Hero Cape 🦸
+  * Shoes: Yellow Rain Boots 🥾, Aqua Kicks 👟, Tiny Skates ⛸️
+  Equipping items layers them directly onto the puffin mascot.
+- Badges and Titles Cleaned: Badges and titles are completely removed from the
+  Fish tab (users will not see any badges or titles here).
+
+3.8 Profile ("Bird" tab)
+---------------------------
+- Shows your stats: current Puffin balance, current daily streak,
+  best-ever streak, and total quests completed.
+- Awards Shelf (.profile-awards): Positioned directly beneath the 4 stat
+  counters. Displays earned badges (Waddle Star, Tide Champion, Golden Plume)
+  and titles earned from Weekly, Monthly, and Seasonal Fights.
+- Interactive Titles: Tapping any earned title in the Awards Shelf equips it
+  instantly to your profile header banner.
+- Shows a scrollable journal/history of completed Today's and Cove quests.
+  City Challenges are explicitly excluded.
+- You can set a display name, a profile photo, and a cover photo
+  (both are resized automatically before upload to keep the site
+  fast).
+- You can link Facebook, Instagram, and/or LinkedIn; enabling one
+  automatically builds the correct profile link from your username
+  and shows it as a real, clickable brand-logo icon.
+- A share button copies a public link to your profile
+  (puffinquest.greenuplabs.com/bird/yourusername) that anyone can
+  open — even without an account — to see your stats and recent
+  quest journal.
+
+3.9 Landing Page
+-------------------
+- A public marketing page describing what Puffin Quest is, reachable
+  any time by clicking the logo (top-left) or visiting
+  puffinquest.greenuplabs.com/intro — including for visitors who are
+  not signed in.
+- New, signed-out visitors now land on this page first, rather than
+  being shown a login form immediately.
+
+
+====================================================================
+4. HOW IT'S BUILT (PLAIN-ENGLISH TECHNICAL SUMMARY)
+====================================================================
+- One server program (written in JavaScript, using Node.js and the
+  Express framework) handles everything: it serves the visual app to
+  your browser AND answers all the behind-the-scenes data requests
+  (logging in, submitting a quest, fetching your profile, etc.).
+- One database (PostgreSQL) is the single permanent record of every
+  user, every submitted quest, every review/cheer, and every fishing
+  catch. Photos are stored as small, compressed thumbnail images
+  directly inside the database (not a separate photo-hosting service).
+- The visual app itself (what you see and click) is built with plain
+  web technology (HTML, CSS, and JavaScript) with no special app
+  framework and no separate "build" step — it's straightforward and
+  easy to maintain.
+- The whole thing is hosted on Render.com's free tier: one small
+  always-available web server plus one small database, at no cost.
+- The source code lives on GitHub. Every time new code is saved there,
+  Render automatically rebuilds and republishes the live site within
+  a couple of minutes.
+- The custom domain (puffinquest.greenuplabs.com) is pointed at the
+  Render server through a DNS setting managed at Hostinger, with a
+  secure HTTPS certificate issued automatically.
+
+
+====================================================================
+5. BUGS FOUND AND FIXED ALONG THE WAY
+====================================================================
+1. Deployment misconfiguration: the very first attempt to publish the
+   site on Render used the wrong setup method (a manually-typed
+   command with a typo, and the wrong project folder), so the app
+   never actually started. Fixed by redoing the setup using Render's
+   automatic "Blueprint" method, which reads the correct settings
+   directly from the project's code.
+2. Domain conflict: the custom domain briefly failed to connect
+   because an unrelated, unused "website" feature inside the
+   Hostinger account was still holding onto that same web address
+   behind the scenes. Removing it let the correct DNS setting take
+   effect.
+3. Display glitch: opening someone's public profile link while not
+   signed in briefly showed the sign-in screen overlapping and
+   bleeding through the profile underneath it. Fixed so the shared
+   profile now displays cleanly by itself.
+4. Layout glitch: on the marketing landing page, the little "speech
+   bubble" greeting animation from the puffin mascot could overlap
+   the "What is Puffin Quest" label above it on narrow (phone-width)
+   screens. Fixed by repositioning the bubble and adding spacing.
+5. A test-only incident (see Phase 3 above): an unexpected photo
+   appeared in a local test database during testing of the photo-
+   upload feature. Investigated immediately, confirmed it never
+   touched the live production site, deleted, and all related test
+   data wiped.
+6. A real, more serious bug: the database stores "what day it is" as
+   a special date format, but the code was comparing that against a
+   plain text date using a check that could never succeed — meaning,
+   in effect, every visit was silently treated as "a new day," which
+   reset each user's daily-quest completion tracking almost
+   constantly. This has been fixed at the source so daily progress is
+   now correctly remembered.
+7. HTTP 304 Caching on API requests: The Express server generated ETags
+   by default, causing browsers to receive empty 304 Not Modified responses
+   for API calls when cached, which broke live data updates and login.
+   Fixed by disabling server ETags (app.set("etag", false)), adding
+   Cache-Control: no-store across all API routes, and enforcing
+   cache: "no-store" in frontend fetch requests.
+8. PostgreSQL array column parsing: Columns stored as PostgreSQL text
+   arrays (titles, badges, daily_done_ids, fun_done_ids) returned as raw
+   strings (e.g. "{}") in pg-mem and certain pg driver configurations,
+   crashing client array operations (.forEach is not a function). Fixed by
+   registering an OID 1009 array parser in db.js and wrapping all array
+   reads in a universal toArray() sanitizer across backend routes.
+9. Correlated review subqueries: Subqueries referencing outer table aliases
+   failed in in-memory previews during local development. Decoupled review
+   queries cleanly in cove.js and gamestate.js for maximum performance and
+   reliability.
+10. Phase 11 — 4 Daily Quests, 3-Way Cove Sliding Tabs (Green, Random, All),
+    Singapore & Vietnam Recycling Maps, and Bird Profile Journal Deletion:
+    - Today's Quests expanded to always generate and reroll exactly 4 quests.
+    - Cove Quests upgraded to a 3-way sliding Liquid Glass segmented control:
+      * "Green": Eco-adventures with step-by-step guides, partner bonus notes
+        (e.g., BOO 15% discount voucher), and interactive Leaflet map pinned
+        with real-world drop-offs across Hà Nội, TP.HCM, Bình Dương, and Singapore.
+      * "Random": The current wholesome fun community quests pool.
+      * "All": Unified explorer for all Cove quests.
+    - Verified real drop-off locations: Reshare network in HCMC & Bình Dương,
+      12 Hanoi charity donation spots, BOO apparel recycling hubs, DoNRE battery
+      drop-offs, and Singapore Salvation Army, Cloop bins, ALBA E-Waste stations,
+      SGRecycle carton points, SPCA / SOSD shelters, and cafe BYO tumbler spots.
+    - GPS verification generates clickable Google Maps links in both Cove review
+      cards and Bird profile journal rows.
+    - Added a sleek 2-step inline confirmation delete button (🗑️ -> Delete? 🗑️)
+      on Bird profile journal cards allowing users to delete entries directly,
+      decrementing completed stats and allowing quests to be redone.
+11. Phase 12 — 2x2 Phone Daily Quests, Cove Priority Tabs (Green, Culture, Random),
+    Museum & Food Maps, and Auto-Post Toggle Persistence:
+    - Today's Quests: Responsive 2x2 box grid layout on phones (2 columns x 2 rows
+      of compact, proportional quest cards).
+    - Cove Quests 3-Way Tabs Re-prioritized (Green, Culture, Random):
+      * Left: "Green" (Eco adventures with recycling drop-off maps).
+      * Middle: "Culture" (Cultural adventures with interactive Leaflet maps:
+        Museum Wanderer with 14 pinned museums in Hanoi, HCMC, Da Nang, Singapore;
+        Morning Pho breakfast spots; Heritage Pagodas; and Artisan markets).
+      * Right: "Random" (The original fun quests pool: Sunset Chaser, Curious
+        Mind Read & Learn, Rainbow, Grass, Kindness, Cook, Stargaze, etc.).
+      * Fixed carousel track translateX offset formula (translateX(-${idx * 33.333333}%)
+        so Random and Culture slide accurately into full view.
+    - Bird & Quest Auto-Post Toggle:
+      * Checkbox preference "Automatically post to your bird profile" is saved
+      * in localStorage (pq_auto_post_profile) and persists across quests until
+        explicitly changed again.
+      * If unclicked, the completed quest is excluded from the Bird profile
+        journal (WHERE post_to_profile IS TRUE).
+12. Phase 13 — Cove Proof Requirements & Reviewer Puffin Rewards:
+    - Proof rule: To submit to the community Cove, players must take a real photo;
+      GPS is optional with explicit UI labeling ("Share GPS (optional)").
+    - Reviewer rewards: Any player who reviews a Cove submission (whether approve
+      or reject) receives +1 Puffin. If they write encouraging feedback or a note,
+      they receive an additional +1 Puffin (+2 Puffins total), announced with a toast.
+13. Phase 14 — Real AI Vision Backend, Mandatory GPS, and 3-Round Limit:
+    - Real Multi-Provider AI Vision Engine (`webapp/src/ai-vision.js`):
+      * Built direct multimodal vision integrations with Google Gemini Vision
+        (models/gemini-1.5-flash) and OpenAI Vision (gpt-4o-mini).
+      * The backend inspects the player's photo, detects visible subjects, and
+        computes an honest similarity score (0-100) against ground-truth
+        architectural profiles for Hà Nội, TP.HCM, and Singapore.
+      * Auto-loads `webapp/.env` on server startup via `process.loadEnvFile()`.
+      * Added diagnostic status endpoint `GET /api/city/ai-status` and a live status
+        badge on the City Challenge card showing active AI provider/model and status.
+    - Maximum 3 Rounds: Each city challenge is capped at 3 rounds (Round 1 of 3,
+      Round 2 of 3, Round 3 of 3). Clearly displayed on city selection cards,
+      landmark cards, modal dialogs, and strictly enforced on `/api/quests/submit`.
+    - Mandatory GPS: For City Challenge only, GPS is strictly required (must be within
+      ±10m tolerance; missing GPS is rejected).
+    - Removed Test at Landmark: Deleted the "Test at Landmark (±0m)" cheat button
+      and associated CSS/JS completely.
+
+
+
+====================================================================
+6. JUDGMENT CALLS MADE WHEN INSTRUCTIONS LEFT ROOM FOR INTERPRETATION
+====================================================================
+- The two automated "bot" reviewer accounts always approve a
+  submission (there is no random chance of an automatic rejection).
+- The Daily Quests "refresh" feature is a single shuffle button
+  (rather than two separate "refresh" and "random" controls).
+- City Challenge landmarks are shown as stylized, deliberately
+  blurred icon graphics rather than real photographs of the actual
+  places, specifically to avoid using anyone else's copyrighted
+  photos without permission. Real licensed photos could be swapped in
+  later if desired.
+- "Send this quest to a friend" links now open directly on the
+  quest's completion screen and lead into the cheer flow, since
+  quests no longer have a "waiting for approval" in-between state.
+
+
+====================================================================
+7. KNOWN LIMITATIONS / THINGS TO KEEP IN MIND
+====================================================================
+- No self-service "forgot password" flow yet.
+- Render's free hosting plan "falls asleep" after about 15 minutes of
+  no visitors; the next visitor after that may wait up to about a
+  minute for the site to wake back up.
+- Render's free database is automatically deleted 90 days after it
+  was created unless it is upgraded to a paid plan or its data is
+  backed up/migrated beforehand. IN PROGRESS: the decision is to move
+  the database to Neon, a different provider whose free PostgreSQL is
+  permanent rather than time-limited. The code is ready for the move
+  and the step-by-step runbook is in
+  docs/DATABASE_BACKUP_AND_MIGRATION.md. The remaining work is manual
+  account setup that only the owner can do: create the Neon project,
+  run the backup, load it into Neon, and paste the new connection
+  string into Render. Hostinger cannot host this database — its
+  shared/Premium plans offer MySQL only, not PostgreSQL. It can hold
+  the backup FILES, and it keeps handling the domain either way.
+- Live updates (e.g., seeing a cheer from someone else appear) rely
+  on the app periodically checking for changes every few seconds,
+  rather than appearing instantly.
+- Photos are stored as small compressed thumbnails inside the
+  database rather than a dedicated photo-hosting service, which is
+  simple and free but keeps photo quality modest.
+- Real AI Vision Key: Configured with Google Gemini Multimodal Vision
+  API using the active model (gemini-3.6-flash with automated fallback),
+  enabling live AI photo review (~80-90% match threshold) paired with
+  mandatory GPS proximity (within +-10m) for City Challenges.
+
+====================================================================
+END OF LOG
+====================================================================

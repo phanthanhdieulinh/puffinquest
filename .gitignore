@@ -9,3 +9,5 @@ npm-debug.log*
 # Env
 .env
 .env.local
+backups/
+*.backup.json

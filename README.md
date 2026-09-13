@@ -62,19 +62,22 @@ git push -u origin main
 
 ### 2. Deploy to Render from the Blueprint
 
-Render's free tier gives you a web service + a Postgres database, and the
-`render.yaml` at the repo root describes both so Render can set them up in
-one step:
+Render hosts the web service. The database lives on
+[Neon](https://neon.tech), whose free Postgres tier does not expire, so you
+create that separately and hand Render its connection string.
 
-1. Go to [render.com](https://render.com) and sign in (GitHub sign-in is
+1. Create a free Neon project and copy its connection string. See
+   [docs/DATABASE_BACKUP_AND_MIGRATION.md](docs/DATABASE_BACKUP_AND_MIGRATION.md)
+   for the details.
+2. Go to [render.com](https://render.com) and sign in (GitHub sign-in is
    easiest since your code is already there).
-2. **New → Blueprint**, then pick the GitHub repo you just pushed.
-3. Render reads `render.yaml` and shows two resources to create:
-   `puffin-quest` (web service, free) and `puffin-quest-db` (Postgres,
-   free). Click **Apply**.
-4. Render builds and deploys automatically (`npm install` then
-   `npm start`, as configured). `DATABASE_URL` and a random `JWT_SECRET`
-   are wired up for you automatically — nothing to type in.
+3. **New → Blueprint**, then pick the GitHub repo you just pushed. Render
+   reads `render.yaml` and offers to create the `puffin-quest` web service
+   (free). Click **Apply**.
+4. On the service's **Environment** tab, set `DATABASE_URL` to your Neon
+   connection string. `DATABASE_SSL` and a random `JWT_SECRET` are set for
+   you by the blueprint. Render then builds and deploys automatically
+   (`npm install` then `npm start`).
 5. When the deploy finishes you'll have a live URL like
    `https://puffin-quest.onrender.com`. Open it and register an account to
    confirm it works before moving on to the domain.
@@ -103,10 +106,12 @@ community review Cove.
   Fine for personal/small-group use; upgrade the Render plan to keep it
   always-on if that matters to you.
 - **Render's free Postgres database expires 90 days after creation** (Render
-  deletes free databases after that window). Before it expires, either
-  upgrade the database to a paid plan in the Render dashboard, or export
-  the data (`pg_dump`) and recreate it — otherwise accounts/progress will
-  be lost after 90 days.
+  deletes free databases after that window). The plan is to move the database
+  to Neon, whose free Postgres tier does not expire. Back up any time with
+  `npm run backup`; the step-by-step move is in
+  [docs/DATABASE_BACKUP_AND_MIGRATION.md](docs/DATABASE_BACKUP_AND_MIGRATION.md).
+  Note that `DATABASE_URL` is now set by hand in the Render dashboard rather
+  than wired to a Render database.
 - Quest photos are stored as small resized thumbnails directly in Postgres
   (not a separate file host), which keeps the whole app to one database
   and avoids needing a third-party storage account.

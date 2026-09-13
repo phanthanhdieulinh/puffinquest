@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <style>
   /* ============ TOKENS ============ */
@@ -180,6 +181,9 @@
   @keyframes streakgrow{0%{transform:scale(1) rotate(0);}40%{transform:scale(1.25) rotate(-4deg);}70%{transform:scale(.95) rotate(2deg);}100%{transform:scale(1) rotate(0);}}
   .streak-float{position:absolute;left:50%;top:-4px;transform:translate(-50%,0);font-size:12.5px;font-weight:800;color:var(--coral-dark);white-space:nowrap;pointer-events:none;animation:streakfloat 1.2s ease forwards;}
   @keyframes streakfloat{0%{opacity:0;transform:translate(-50%,6px) scale(.8);}22%{opacity:1;transform:translate(-50%,-8px) scale(1.05);}100%{opacity:0;transform:translate(-50%,-36px) scale(1);}}
+  .freeze-badge{display:none;align-items:center;gap:3px;background:linear-gradient(135deg,rgba(173,216,230,.35),rgba(100,180,220,.2));border:1px solid rgba(100,180,220,.4);border-radius:var(--radius-pill);padding:4px 8px;font-size:11.5px;font-weight:700;color:#2980b9;cursor:default;}
+  .freeze-badge.has-freezes{display:flex;}
+  .freeze-badge .freeze-icon{font-size:13px;line-height:1;}
 
   /* ============ PAGES ============ */
   .page{display:none;}
@@ -207,6 +211,15 @@
   .block-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
   .block-head h2{font-size:19px;margin:0;display:flex;align-items:center;gap:8px;}
   .block-head p{margin:2px 0 0;color:var(--ink-soft);font-size:13px;}
+  /* Cute section badges: You / Community / AI */
+  .section-badge{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 10px;border-radius:var(--radius-pill);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 2px 8px rgba(0,0,0,.08),0 1px 0 rgba(255,255,255,.5) inset;animation:badge-pulse 3s ease-in-out infinite;}
+  .section-badge-you{background:linear-gradient(135deg,rgba(255,201,77,.25),rgba(255,160,77,.2));color:var(--gold-ink);border:1px solid rgba(255,201,77,.4);}
+  :root[data-theme="dark"] .section-badge-you{background:linear-gradient(135deg,rgba(255,201,77,.2),rgba(255,160,77,.15));color:var(--gold);border-color:rgba(255,201,77,.35);}
+  .section-badge-community{background:linear-gradient(135deg,rgba(255,107,74,.15),rgba(226,78,44,.12));color:var(--coral-dark);border:1px solid rgba(255,107,74,.35);}
+  :root[data-theme="dark"] .section-badge-community{background:linear-gradient(135deg,rgba(255,107,74,.2),rgba(226,78,44,.15));color:var(--coral);border-color:rgba(255,107,74,.3);}
+  .section-badge-ai{background:linear-gradient(135deg,rgba(123,97,255,.14),rgba(168,85,247,.12));color:#6D4BC7;border:1px solid rgba(123,97,255,.3);}
+  :root[data-theme="dark"] .section-badge-ai{background:linear-gradient(135deg,rgba(123,97,255,.22),rgba(168,85,247,.18));color:#B9A6FF;border-color:rgba(185,166,255,.35);}
+  @keyframes badge-pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.88;transform:scale(1.03);}}
   .block-tag{font-size:11.5px;font-weight:700;color:var(--ink-faint);font-family:"Space Mono";}
   .daily-head-right{display:flex;align-items:center;gap:10px;}
   .daily-reroll-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--border-glass);background:var(--surface-strong);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:transform .3s cubic-bezier(.34,1.56,.64,1);flex:none;}
@@ -214,6 +227,19 @@
 
   .quest-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
   @media (max-width:480px){ .quest-grid{grid-template-columns:1fr;} }
+
+  /* Today's Quest: Always a 2x2 box layout */
+  #daily-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  @media (max-width:480px){
+    #daily-grid{grid-template-columns:repeat(2,1fr);gap:9px;}
+    #daily-grid .qcard{padding:11px 9px;gap:5px;}
+    #daily-grid .qcard .icon-chip{width:34px;height:34px;font-size:17px;border-radius:10px;}
+    #daily-grid .qcard .qtitle{font-size:13px;line-height:1.2;}
+    #daily-grid .qcard .qdesc{font-size:10.5px;line-height:1.3;min-height:28px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    #daily-grid .reward-chip{font-size:11.5px;}
+    #daily-grid .reward-chip svg{width:14px;height:14px;}
+    #daily-grid .status-chip{font-size:8.5px;padding:2px 6px;}
+  }
 
   .icon-chip{
     width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;
@@ -223,9 +249,9 @@
   .qcard{
     border-radius:var(--radius-lg);padding:16px;cursor:pointer;text-align:left;width:100%;
     display:flex;flex-direction:column;gap:9px;color:inherit;
-    transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s;
+    transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s,border-color .2s;
   }
-  .qcard:hover{transform:translateY(-4px) rotate(-.3deg);}
+  .qcard:hover{transform:translateY(-4px) rotate(-.3deg);border-color:rgba(255,255,255,.3);}
   .qcard:active{transform:translateY(-1px) scale(.99);}
   .qcard:focus-visible{outline:2px solid var(--coral);outline-offset:3px;}
   .qcard .qtitle{font-family:"Fredoka";font-size:16px;font-weight:600;line-height:1.25;}
@@ -235,7 +261,7 @@
   .reward-chip svg{width:17px;height:17px;}
   .status-chip{font-size:10.5px;font-weight:700;letter-spacing:.03em;padding:4px 9px;border-radius:var(--radius-pill);text-transform:uppercase;}
   .status-new{background:var(--surface-strong);color:var(--ink-faint);}
-  .status-pending{background:var(--kelp-soft);color:var(--kelp);}
+  .status-pending{background:rgba(255,216,115,.2);color:var(--gold);border:1px solid rgba(255,216,115,.35);}
   .status-done{background:#DCF3E7;color:#146B45;}
   :root[data-theme="dark"] .status-done{background:#123A2A;color:#5CE3A6;}
   @media (prefers-color-scheme:dark){
@@ -244,49 +270,162 @@
 
   .qcard.is-done{opacity:.75;}
   .qcard.is-done .qtitle{text-decoration:line-through;text-decoration-color:var(--kelp);text-decoration-thickness:2px;}
-  .qcard.is-pending{opacity:.85;}
+  .qcard.is-pending{border-color:rgba(255,216,115,.45);box-shadow:0 0 16px rgba(255,216,115,.15);}
 
-  /* ============ REVIEW COVE (Tinder mode) ============ */
+  .rule-hint{font-size:12px;color:var(--ink-faint);margin-top:3px;}
+
+  /* ============ PROOF TOOLBAR & PROFILE TOGGLE ============ */
+  .proof-toolbar{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .proof-gps-btn{background:var(--surface-strong);border:1px solid var(--border-glass);color:var(--ink);border-radius:var(--radius-pill);font-size:12px;padding:7px 12px;}
+  .proof-gps-btn:hover{background:rgba(79,209,192,.18);border-color:var(--kelp);}
+  .gps-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;background:rgba(79,209,192,.15);border:1px solid rgba(79,209,192,.35);border-radius:var(--radius-pill);font-size:12px;color:var(--kelp);font-weight:600;}
+  .gps-dot{width:7px;height:7px;border-radius:50%;background:var(--kelp);box-shadow:0 0 8px var(--kelp);display:inline-block;animation:pulse-dot 1.8s infinite;}
+  @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.8);}}
+  .gps-remove-btn{background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:12px;padding:0 2px;}
+  .gps-remove-btn:hover{color:var(--coral);}
+
+  .modal-quest-type-pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:4px 10px;border-radius:var(--radius-pill);margin-bottom:12px;}
+  .modal-quest-type-pill.is-daily{color:var(--kelp);background:var(--kelp-soft);border:1px solid rgba(79,209,192,.25);}
+  .modal-quest-type-pill.is-cove{color:var(--coral-dark);background:rgba(255,107,74,.15);border:1px solid rgba(255,107,74,.3);}
+  .modal-quest-type-pill.is-city{color:#4B32C3;background:rgba(123,97,255,.16);border:1px solid rgba(123,97,255,.35);}
+  :root[data-theme="dark"] .modal-quest-type-pill.is-city{color:#B9A6FF;background:rgba(123,97,255,.25);border-color:rgba(185,166,255,.4);}
+
+  .proof-note{display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:500;color:var(--ink-subtle);margin-top:8px;padding:7px 14px;background:rgba(255,255,255,.05);border:1px solid var(--border-glass);border-radius:var(--radius-pill);text-align:center;}
+  :root[data-theme="dark"] .proof-note{background:rgba(0,0,0,.25);color:var(--ink-subtle);}
+  .proof-note strong{color:var(--ink);font-weight:700;}
+
+  .post-to-profile-row{margin:12px 0 8px;padding:10px 14px;border-radius:var(--radius-md);background:var(--surface-strong);border:1px solid var(--border-glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);display:flex;align-items:center;}
+  .glass-checkbox-label{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink);cursor:pointer;user-select:none;width:100%;}
+  .glass-checkbox-label input[type="checkbox"]{position:absolute;opacity:0;width:0;height:0;pointer-events:none;}
+  .glass-checkbox-custom{width:20px;height:20px;border-radius:6px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.28);box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 2px 5px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;flex:none;transition:all .2s cubic-bezier(.2,.9,.3,1);}
+  .glass-checkbox-label input[type="checkbox"]:checked + .glass-checkbox-custom{background:linear-gradient(135deg,#E24E2C 0%,#FF6B4A 100%);border-color:rgba(255,255,255,.6);box-shadow:0 0 12px rgba(226,78,44,.45),0 1px 0 rgba(255,255,255,.5) inset;}
+  .glass-checkbox-label input[type="checkbox"]:checked + .glass-checkbox-custom::after{content:"✓";font-size:12.5px;font-weight:800;color:#fff;}
+  .glass-checkbox-text{flex:1;font-size:13px;color:var(--ink-soft);transition:color .2s;}
+  .glass-checkbox-label input[type="checkbox"]:checked ~ .glass-checkbox-text{color:var(--coral-dark);font-weight:600;}
+
+  /* ============ 3-PUFFIN VERIFICATION LOADING STAGE ============ */
+  .city-verify-body{text-align:center;padding:12px 4px 6px;}
+  .verify-heading h4{font-family:"Fredoka";font-size:18px;margin:4px 0 2px;color:var(--ink);}
+  .verify-sub{font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;}
+  .puffin-trio-container{display:flex;flex-direction:column;gap:10px;margin:12px 0;}
+  @media(min-width:480px){.puffin-trio-container{flex-direction:row;align-items:stretch;}}
+  .puffin-trio-card{
+    flex:1;border-radius:var(--radius-md);padding:14px 10px;background:var(--surface-strong);
+    border:1px solid var(--border-glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    display:flex;flex-direction:column;align-items:center;gap:5px;transition:all .35s cubic-bezier(.2,.9,.3,1);
+    position:relative;overflow:hidden;box-shadow:0 2px 8px var(--shadow);
+  }
+  .puffin-trio-card.is-active{
+    border-color:var(--kelp);box-shadow:0 0 16px rgba(79,209,192,.35),0 1px 0 rgba(255,255,255,.4) inset;
+    transform:translateY(-2px);
+  }
+  .puffin-trio-card.is-passed{
+    border-color:rgba(79,209,192,.6);background:rgba(220,243,231,.45);
+  }
+  :root[data-theme="dark"] .puffin-trio-card.is-passed{background:rgba(18,58,42,.45);border-color:rgba(92,227,166,.5);}
+  .puffin-trio-card.is-failed{
+    border-color:rgba(255,107,74,.6);background:rgba(255,107,74,.15);
+  }
+  .puffin-trio-avatar{position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:24px;border-radius:50%;background:rgba(255,255,255,.4);}
+  :root[data-theme="dark"] .puffin-trio-avatar{background:rgba(255,255,255,.1);}
+  .puffin-trio-card.is-active .puffin-trio-avatar{animation:puffin-bounce 1s infinite alternate cubic-bezier(.2,.9,.3,1);}
+  @keyframes puffin-bounce{0%{transform:translateY(0) scale(1);}100%{transform:translateY(-4px) scale(1.08);}}
+  .puffin-pulse-ring{position:absolute;inset:-3px;border-radius:50%;border:2px solid transparent;}
+  .puffin-trio-card.is-active .puffin-pulse-ring{border-color:var(--kelp);animation:pulse-ring 1.4s infinite;}
+  @keyframes pulse-ring{0%{transform:scale(.85);opacity:1;}100%{transform:scale(1.35);opacity:0;}}
+  .puffin-trio-role{font-family:"Fredoka";font-size:13px;font-weight:700;color:var(--ink);margin-top:2px;}
+  .puffin-trio-desc{font-size:11px;color:var(--ink-faint);line-height:1.2;}
+  .puffin-trio-status{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:var(--radius-pill);margin-top:4px;letter-spacing:.02em;}
+  .puffin-trio-status.status-waiting{background:rgba(0,0,0,.05);color:var(--ink-faint);}
+  :root[data-theme="dark"] .puffin-trio-status.status-waiting{background:rgba(255,255,255,.08);color:var(--ink-faint);}
+  .puffin-trio-status.status-checking{background:rgba(255,216,115,.25);color:var(--gold-ink);border:1px solid rgba(255,216,115,.45);}
+  :root[data-theme="dark"] .puffin-trio-status.status-checking{color:var(--gold);}
+  .puffin-trio-status.status-passed{background:#DCF3E7;color:#146B45;border:1px solid rgba(79,209,192,.35);}
+  :root[data-theme="dark"] .puffin-trio-status.status-passed{background:#123A2A;color:#5CE3A6;}
+  .puffin-trio-status.status-failed{background:rgba(255,107,74,.22);color:var(--coral-dark);border:1px solid rgba(255,107,74,.4);}
+  .puffin-trio-detail{font-size:11px;color:var(--ink-soft);line-height:1.3;margin-top:2px;text-align:center;}
+
+  /* ============ COMMUNITY REVIEW COVE ============ */
   .cove-page-head{text-align:center;margin-top:18px;}
   .cove-page-head h1{font-size:22px;margin:6px 0 4px;}
   .cove-page-head p{margin:0 auto;max-width:44ch;color:var(--ink-soft);font-size:13.5px;line-height:1.5;}
+  .cove-reward-hint{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:var(--radius-pill);background:rgba(226,78,44,.1);border:1px solid rgba(226,78,44,.25);font-size:12px;font-weight:600;color:var(--coral-dark);margin-top:8px;}
+  :root[data-theme="dark"] .cove-reward-hint{background:rgba(255,107,74,.15);color:var(--coral);border-color:rgba(255,107,74,.3);}
   .cove-progress{font-size:11.5px;color:var(--ink-faint);font-family:"Space Mono";text-align:center;margin-top:8px;}
   .cove-deck{max-width:400px;margin:16px auto 0;}
-  .cove-stack{position:relative;height:270px;}
+  .cove-stack{position:relative;height:300px;}
   .cove-empty{text-align:center;padding:64px 10px;color:var(--ink-soft);font-size:13.5px;}
   .stack-card{
     position:absolute;inset:0;border-radius:var(--radius-lg);padding:18px;
     display:flex;flex-direction:column;gap:10px;user-select:none;cursor:grab;
+    box-shadow:0 1px 0 rgba(255,255,255,.45) inset, 0 20px 45px -15px var(--shadow);
   }
   .stack-card:active{cursor:grabbing;}
-  .rcard-photo{border-radius:var(--radius-md);height:108px;display:flex;align-items:center;justify-content:center;font-size:36px;background:linear-gradient(135deg,var(--rc1,var(--kelp-soft)),var(--rc2,var(--surface-strong)));border:1px solid var(--border-glass);overflow:hidden;}
-  .rcard-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .rcard-photo{border-radius:var(--radius-md);height:124px;display:flex;align-items:center;justify-content:center;font-size:36px;background:linear-gradient(135deg,var(--rc1,var(--kelp-soft)),var(--rc2,var(--surface-strong)));border:1px solid var(--border-glass);overflow:hidden;position:relative;}
+  .rcard-photo img,.rcard-photo video{width:100%;height:100%;object-fit:cover;display:block;}
+  .rcard-gps{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--kelp);background:rgba(79,209,192,.16);padding:3px 9px;border-radius:var(--radius-pill);border:1px solid rgba(79,209,192,.32);align-self:flex-start;}
   .rcard-meta{font-size:12px;color:var(--ink-faint);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .rcard-quest{font-family:"Fredoka";font-weight:600;font-size:14.5px;}
+  .rcard-quest{font-family:"Fredoka";font-weight:600;font-size:15px;}
   .rcard-caption{font-size:12.5px;color:var(--ink-soft);line-height:1.4;}
-  .stamp{position:absolute;top:16px;padding:6px 14px;border:3px solid;border-radius:10px;font-family:"Fredoka";font-weight:700;font-size:16px;text-transform:uppercase;opacity:0;pointer-events:none;letter-spacing:.02em;}
-  .stamp-approve{right:16px;color:var(--coral);border-color:var(--coral);transform:rotate(10deg);}
-  .stamp-skip{left:16px;color:var(--ink-faint);border-color:var(--ink-faint);transform:rotate(-10deg);}
+  .stamp{position:absolute;top:16px;padding:6px 14px;border:3px solid;border-radius:10px;font-family:"Fredoka";font-weight:700;font-size:16px;text-transform:uppercase;opacity:0;pointer-events:none;letter-spacing:.02em;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+  .stamp-approve{right:16px;color:var(--kelp);border-color:var(--kelp);background:rgba(79,209,192,.2);transform:rotate(10deg);}
+  .stamp-skip,.stamp-reject{left:16px;color:var(--coral-dark);border-color:var(--coral-dark);background:rgba(255,107,74,.2);transform:rotate(-10deg);}
   .cove-comment-row{margin-top:16px;position:relative;max-width:400px;margin-left:auto;margin-right:auto;}
   .cove-deck-actions{display:flex;gap:10px;margin-top:10px;max-width:400px;margin-left:auto;margin-right:auto;}
-  .rbtn{flex:1;border:none;border-radius:var(--radius-pill);padding:13px 10px;font-weight:700;font-size:13.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:transform .15s;}
+  .rbtn{flex:1;border:none;border-radius:var(--radius-pill);padding:13px 10px;font-weight:700;font-size:13.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s cubic-bezier(.2,.9,.3,1);}
   .rbtn:active{transform:scale(.94);}
-  .rbtn-approve{background:var(--coral);color:#fff;}
+  .rbtn-approve{background:linear-gradient(135deg,#E24E2C 0%,#FF6B4A 100%);color:#fff;box-shadow:0 6px 20px rgba(226,78,44,.35);}
+  .rbtn-reject{background:rgba(255,107,74,.18);color:var(--coral-ink);border:1px solid rgba(255,107,74,.35);}
+  .rbtn-reject:hover{background:rgba(255,107,74,.26);}
   .rbtn-skip{background:var(--surface-strong);color:var(--ink-soft);border:1px solid var(--border-glass);}
   .cove-hint{text-align:center;font-size:11.5px;color:var(--ink-faint);margin-top:12px;}
 
-  /* ============ FIGHT ============ */
+  /* ============ FIGHT & 3-WAY SEGMENTED SLIDER ============ */
   .fight-page-head{text-align:center;margin-top:18px;}
   .fight-page-head h1{font-size:22px;margin:6px 0 4px;}
-  .fight-page-head p{margin:0 auto;max-width:44ch;color:var(--ink-soft);font-size:13.5px;line-height:1.5;}
-  .fight-grid{display:flex;flex-direction:column;gap:14px;margin-top:18px;}
+  .fight-page-head p{margin:0 auto;max-width:46ch;color:var(--ink-soft);font-size:13.5px;line-height:1.5;}
+
+  .segmented-nav-wrap{
+    position:relative;margin:16px 0 18px;background:var(--surface-soft);
+    border:1px solid var(--border-glass);border-radius:var(--radius-pill);
+    padding:4px;display:flex;align-items:center;
+    box-shadow:0 8px 24px -6px var(--shadow), 0 1px 0 rgba(255,255,255,.5) inset;
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  }
+  .segmented-nav-btn{
+    flex:1;position:relative;z-index:2;background:none;border:none;
+    padding:10px 6px;border-radius:var(--radius-pill);
+    font-family:"Fredoka";font-size:13.5px;font-weight:600;
+    color:var(--ink-soft);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:6px;
+    transition:color .25s ease, transform .15s ease;
+    white-space:nowrap;
+  }
+  .segmented-nav-btn:active{transform:scale(.95);}
+  .segmented-nav-btn.active{color:var(--ink);font-weight:700;}
+  .segmented-nav-indicator{
+    position:absolute;top:4px;bottom:4px;width:calc((100% - 8px) / 3);
+    border-radius:var(--radius-pill);z-index:1;
+    background:var(--surface-strong);
+    border:1px solid var(--border-glass);
+    box-shadow:0 4px 14px var(--shadow), 0 1px 0 rgba(255,255,255,.6) inset;
+    transition:transform .35s cubic-bezier(.22,1,.36,1);
+    pointer-events:none;
+  }
+  .fight-carousel-viewport{overflow:hidden;width:100%;}
+  .fight-carousel-track{display:flex;width:300%;transition:transform .4s cubic-bezier(.22,1,.36,1);}
+  .fight-carousel-panel{width:33.333333%;flex:none;min-width:0;padding:0 2px;}
+
+  .fight-grid{display:flex;flex-direction:column;gap:14px;margin-top:14px;}
   .fight-card{border-radius:var(--radius-xl);padding:20px;}
   .fight-head{display:flex;justify-content:space-between;align-items:center;gap:8px;}
   .fight-tag{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--kelp);background:var(--kelp-soft);padding:4px 10px;border-radius:var(--radius-pill);flex:none;}
   .fight-reset{font-size:11px;color:var(--ink-faint);font-family:"Space Mono";text-align:right;}
   .fight-name{font-size:18px;margin:12px 0 4px;}
   .fight-desc{margin:0;color:var(--ink-soft);font-size:13px;}
-  .fight-bar-track{height:12px;border-radius:999px;background:var(--surface-soft);border:1px solid var(--border-glass);overflow:hidden;margin-top:16px;}
+  .fight-award-row{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .fight-badge-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--gold);background:rgba(255,201,77,.18);border:1px solid rgba(255,201,77,.35);padding:4px 10px;border-radius:var(--radius-pill);}
+  .fight-bar-track{height:12px;border-radius:999px;background:var(--surface-soft);border:1px solid var(--border-glass);overflow:hidden;margin-top:14px;}
   .fight-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--coral));border-radius:inherit;transition:width .6s cubic-bezier(.22,1,.36,1);}
   .fight-foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px;}
   .fight-count{font-size:12.5px;color:var(--ink-soft);}
@@ -310,36 +449,176 @@
   .mystery-photo .mystery-badge{position:absolute;top:10px;right:10px;background:rgba(8,26,33,.55);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:4px 10px;border-radius:var(--radius-pill);}
   .city-all-done{text-align:center;padding:20px 10px;color:var(--ink-soft);font-size:13.5px;}
 
-  /* ============ FISH ============ */
+  /* ============ PVP FIGHT PUFFINS ============ */
+  .pvp-create-box{border-radius:var(--radius-xl);padding:20px;margin-bottom:18px;}
+  .pvp-stake-row{display:flex;align-items:center;gap:8px;margin:10px 0 14px;}
+  .pvp-stake-btn{flex:1;background:var(--surface-soft);border:1px solid var(--border-glass);border-radius:var(--radius-pill);padding:8px 4px;font-family:"Space Mono";font-size:13px;font-weight:700;color:var(--ink-soft);cursor:pointer;transition:all .15s;}
+  .pvp-stake-btn.active{background:var(--coral);color:#fff;border-color:var(--coral);box-shadow:0 4px 12px rgba(255,107,74,.35);}
+  .pvp-mode-toggle{display:flex;gap:8px;margin-bottom:12px;}
+  .pvp-mode-btn{flex:1;padding:8px;border-radius:var(--radius-pill);background:var(--surface-soft);border:1px solid var(--border-glass);font-size:12.5px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:all .15s;}
+  .pvp-mode-btn.active{background:var(--surface-strong);border-color:var(--kelp);color:var(--ink);box-shadow:0 2px 8px var(--shadow);}
+  .pvp-list{display:flex;flex-direction:column;gap:12px;margin-top:10px;}
+  .pvp-card{
+    border-radius:var(--radius-lg);padding:16px;background:var(--surface-strong);
+    border:1px solid var(--border-glass);box-shadow:0 4px 16px var(--shadow);
+    display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden;
+  }
+  .pvp-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .pvp-versus{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;}
+  .pvp-player{display:flex;align-items:center;gap:5px;}
+  .pvp-pot-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:var(--radius-pill);font-family:"Space Mono";font-weight:700;font-size:12px;background:rgba(255,201,77,.2);color:var(--gold);border:1px solid rgba(255,201,77,.35);}
+  .pvp-quest-badge{display:flex;align-items:center;gap:8px;background:var(--surface-soft);border:1px solid var(--border-glass);padding:8px 12px;border-radius:var(--radius-md);font-size:13px;}
+  .pvp-card-actions{display:flex;gap:8px;margin-top:4px;}
+  .pvp-status-pill{font-size:10.5px;font-weight:700;text-transform:uppercase;padding:3px 8px;border-radius:var(--radius-pill);}
+  .pvp-status-pending{background:rgba(255,201,77,.25);color:var(--gold);}
+  .pvp-status-active{background:rgba(79,209,192,.25);color:var(--kelp);}
+  .pvp-status-completed{background:#DCF3E7;color:#146B45;}
+  :root[data-theme="dark"] .pvp-status-completed{background:#123A2A;color:#5CE3A6;}
+
+  /* ============ CENTRAL PUFFIN & FISH TAB STYLES ============ */
   .fish-page-head{text-align:center;margin-top:18px;}
   .fish-page-head h1{font-size:22px;margin:6px 0 4px;}
-  .fish-page-head p{margin:0 auto;max-width:44ch;color:var(--ink-soft);font-size:13.5px;line-height:1.5;}
-  .fish-pond{border-radius:var(--radius-xl);padding:26px 20px;margin-top:18px;text-align:center;}
-  .fish-cost{font-size:12.5px;color:var(--ink-faint);margin-top:8px;}
-  .fish-stage{min-height:140px;display:flex;align-items:center;justify-content:center;margin:16px 0;}
-  .fish-waiting{font-size:15px;color:var(--ink-soft);font-family:"Fredoka";font-weight:600;animation:fishwait 1.2s ease-in-out infinite;}
-  @keyframes fishwait{0%,100%{opacity:.5;transform:translateY(0);}50%{opacity:1;transform:translateY(-4px);}}
-  .catch-card{border-radius:var(--radius-lg);padding:22px;text-align:center;width:100%;max-width:300px;margin:0 auto;background:var(--surface-strong);border:1px solid var(--border-glass);animation:cel-pop .5s cubic-bezier(.34,1.56,.64,1);}
-  .catch-icon{font-size:44px;line-height:1;}
-  .catch-label{font-family:"Fredoka";font-weight:600;font-size:16.5px;margin-top:8px;}
+  .fish-page-head p{margin:0 auto;max-width:46ch;color:var(--ink-soft);font-size:13.5px;line-height:1.5;}
+
+  .puffin-sanctuary{
+    border-radius:var(--radius-xl);padding:22px 18px 24px;margin-top:16px;text-align:center;
+    position:relative;overflow:hidden;
+    background:radial-gradient(circle at 50% 30%, rgba(79,209,192,.18), transparent 65%), var(--surface-strong);
+    border:1px solid var(--border-glass);box-shadow:0 14px 34px -10px var(--shadow);
+  }
+  .puffin-growth-header{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:14px;}
+  .growth-tier-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--coral-dark);background:var(--surface-soft);border:1px solid var(--border-glass);padding:5px 14px;border-radius:var(--radius-pill);box-shadow:0 2px 8px var(--shadow);}
+  .growth-progress-wrap{width:100%;max-width:260px;}
+  .growth-bar-track{height:8px;border-radius:999px;background:var(--surface-soft);border:1px solid var(--border-glass);overflow:hidden;}
+  .growth-bar-fill{height:100%;background:linear-gradient(90deg,var(--kelp),#2bb8a7);border-radius:inherit;transition:width .5s cubic-bezier(.22,1,.36,1);}
+  .growth-progress-sub{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-faint);margin-top:4px;font-family:"Space Mono";}
+
+  .mascot-doll-stage{
+    position:relative;height:165px;display:flex;align-items:center;justify-content:center;
+    margin:6px 0 16px;
+  }
+  .doll-scale-wrapper{
+    position:relative;transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+    transform-origin:bottom center;
+  }
+  .doll-puffin-base{
+    width:90px;height:90px;position:relative;animation:bob 4.5s ease-in-out infinite;
+    filter:drop-shadow(0 14px 18px var(--shadow));
+  }
+  .doll-puffin-base svg{width:100%;height:100%;display:block;}
+  .doll-accessory{position:absolute;pointer-events:none;z-index:10;line-height:1;}
+  .doll-hat{top:-16px;left:50%;transform:translateX(-50%);font-size:36px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.25));}
+  .doll-clothes{top:36px;left:50%;transform:translateX(-50%);font-size:32px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.25));}
+  .doll-shoes{bottom:-12px;left:50%;transform:translateX(-50%);font-size:28px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.25));}
+
+  /* Fishing Hole Directly Under Central Puffin */
+  .fishing-hole-container{
+    position:relative;margin:0 auto;max-width:300px;
+    background:radial-gradient(ellipse at 50% 50%, rgba(27,107,99,.36) 0%, rgba(18,58,42,.15) 70%, transparent 100%);
+    border-radius:50%;padding:14px 10px;border:1px solid rgba(79,209,192,.28);
+    box-shadow:0 0 24px rgba(79,209,192,.22) inset;
+  }
+  .fishing-hole-ripples{position:absolute;inset:4px;border-radius:50%;border:1px dashed rgba(79,209,192,.35);animation:pondripple 3.5s linear infinite;pointer-events:none;}
+  @keyframes pondripple{0%{transform:scale(.93);opacity:.6;}50%{transform:scale(1.04);opacity:.2;}100%{transform:scale(.93);opacity:.6;}}
+  .fish-cast-action{position:relative;z-index:2;}
+  .fish-cost{font-size:12px;color:var(--ink-faint);margin-top:6px;}
+  .catch-result-box{margin-top:14px;min-height:30px;}
+  .catch-card{border-radius:var(--radius-lg);padding:18px;text-align:center;width:100%;max-width:300px;margin:0 auto;background:var(--surface-strong);border:1px solid var(--border-glass);animation:cel-pop .5s cubic-bezier(.34,1.56,.64,1);}
+  .catch-icon{font-size:40px;line-height:1;}
+  .catch-label{font-family:"Fredoka";font-weight:600;font-size:16px;margin-top:8px;}
   .catch-detail{font-size:12.5px;color:var(--ink-soft);margin-top:4px;}
   .catch-card.rarity-uncommon{box-shadow:0 0 0 2px var(--kelp) inset;}
   .catch-card.rarity-rare{box-shadow:0 0 0 2px var(--coral) inset;}
   .catch-card.rarity-legendary{box-shadow:0 0 0 3px var(--gold) inset,0 0 30px -4px var(--gold);}
-  .fish-cast-btn{width:100%;max-width:300px;}
+
+  /* Wardrobe Section */
+  .wardrobe-section{margin-top:24px;}
+  .wardrobe-tabs{display:flex;gap:6px;margin-bottom:12px;background:var(--surface-soft);border:1px solid var(--border-glass);border-radius:var(--radius-pill);padding:4px;}
+  .wardrobe-tab-btn{flex:1;background:none;border:none;padding:8px 4px;border-radius:var(--radius-pill);font-size:12.5px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:all .2s;}
+  .wardrobe-tab-btn.active{background:var(--surface-strong);color:var(--coral-dark);box-shadow:0 2px 8px var(--shadow);}
+  .wardrobe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:10px;}
+  .wardrobe-item-card{
+    background:var(--surface-soft);border:1px solid var(--border-glass);border-radius:var(--radius-md);
+    padding:12px 8px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;
+    cursor:pointer;transition:all .2s;position:relative;
+  }
+  .wardrobe-item-card:hover{transform:translateY(-2px);border-color:var(--coral);}
+  .wardrobe-item-card.is-equipped{border-color:var(--kelp);background:rgba(79,209,192,.16);box-shadow:0 0 12px rgba(79,209,192,.3);}
+  .wardrobe-item-icon{font-size:30px;line-height:1;}
+  .wardrobe-item-name{font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+  .wardrobe-item-status{font-size:10px;font-weight:700;letter-spacing:.02em;padding:2px 8px;border-radius:var(--radius-pill);background:var(--surface-strong);color:var(--ink-faint);text-transform:uppercase;}
+  .wardrobe-item-card.is-equipped .wardrobe-item-status{background:var(--kelp);color:#072421;}
+  .wardrobe-item-locked{opacity:.42;filter:grayscale(1);}
+
+  .fish-block{margin-top:24px;}
   .fish-section-title{font-size:12.5px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin:8px 0 10px;}
-  .fish-block{margin-top:26px;}
-  .badge-case{display:flex;flex-wrap:wrap;gap:8px;}
-  .badge-chip{width:42px;height:42px;border-radius:14px;background:var(--surface-soft);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;font-size:21px;}
-  .title-list{display:flex;flex-wrap:wrap;gap:8px;}
-  .title-chip{padding:8px 14px;border-radius:var(--radius-pill);background:var(--surface-soft);border:1px solid var(--border-glass);font-size:12.5px;font-weight:700;cursor:pointer;color:var(--ink-soft);transition:transform .15s;}
-  .title-chip:active{transform:scale(.95);}
-  .title-chip.equipped{background:var(--coral);color:#fff;border-color:var(--coral);}
-  .fish-empty{text-align:center;color:var(--ink-faint);font-size:12.5px;padding:12px 0;}
   .catch-log{display:flex;flex-direction:column;gap:6px;}
   .catch-log-row{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--ink-soft);background:var(--surface-soft);border:1px solid var(--border-glass);border-radius:var(--radius-md);padding:8px 12px;}
   .catch-log-row .icon{font-size:17px;flex:none;}
   .catch-log-row .detail{margin-left:auto;font-family:"Space Mono";font-size:11px;color:var(--coral-dark);flex:none;}
+
+  /* ============ PROFILE AWARDS SHELF STYLES ============ */
+  .profile-awards{
+    margin:14px 0 0;border-radius:var(--radius-xl);padding:20px;
+    background:linear-gradient(145deg,var(--surface-strong),rgba(255,255,255,.55));
+    border:1px solid var(--border-glass);
+    box-shadow:0 12px 28px -12px var(--shadow),0 1px 0 rgba(255,255,255,.5) inset;
+    position:relative;overflow:hidden;
+  }
+  :root[data-theme="dark"] .profile-awards{
+    background:linear-gradient(145deg,var(--surface-strong),rgba(22,50,58,.6));
+  }
+  .profile-awards::before{
+    content:"";position:absolute;top:-30px;right:-30px;width:100px;height:100px;
+    background:radial-gradient(circle,rgba(255,201,77,.15) 0%,transparent 70%);
+    border-radius:50%;pointer-events:none;
+  }
+  .awards-header{margin-bottom:16px;text-align:center;}
+  .awards-title{font-size:16px;margin:0 0 4px;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .awards-sub{font-size:11.5px;color:var(--ink-soft);margin:0;}
+  .awards-section-label{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);margin:0 0 10px;}
+  .awards-section-label::after{content:"";flex:1;height:1px;background:var(--border-glass);}
+  .awards-badges-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+  .award-badge-card{
+    display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border-radius:var(--radius-lg);
+    background:var(--surface-soft);border:1.5px dashed var(--border-glass);
+    text-align:center;position:relative;transition:all .25s cubic-bezier(.2,.9,.3,1);
+  }
+  .award-badge-card .award-badge-icon{
+    width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+    font-size:22px;border-radius:50%;background:rgba(0,0,0,.04);
+    border:1.5px dashed var(--border-glass-soft);opacity:.4;
+    filter:grayscale(1);
+  }
+  :root[data-theme="dark"] .award-badge-card .award-badge-icon{background:rgba(255,255,255,.05);}
+  .award-badge-card .award-badge-name{font-size:11px;font-weight:600;color:var(--ink-faint);line-height:1.2;}
+  .award-badge-card .award-badge-lock{position:absolute;top:6px;right:6px;font-size:10px;opacity:.5;}
+  .award-badge-card.is-earned{
+    background:linear-gradient(145deg,rgba(255,201,77,.15),rgba(255,160,77,.1));
+    border:1.5px solid rgba(255,201,77,.45);box-shadow:0 4px 16px rgba(255,201,77,.2);
+  }
+  .award-badge-card.is-earned .award-badge-icon{
+    background:linear-gradient(135deg,rgba(255,201,77,.3),rgba(255,107,74,.2));
+    border:1.5px solid rgba(255,201,77,.5);opacity:1;filter:none;
+    box-shadow:0 0 12px rgba(255,201,77,.25);
+    animation:trophy-glow 3s ease-in-out infinite;
+  }
+  .award-badge-card.is-earned .award-badge-name{color:var(--ink);}
+  .award-badge-card.is-earned .award-badge-lock{display:none;}
+  @keyframes trophy-glow{0%,100%{box-shadow:0 0 8px rgba(255,201,77,.2);}50%{box-shadow:0 0 18px rgba(255,201,77,.4);}}
+  .awards-titles-section{margin-top:4px;}
+  .awards-sub-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-faint);margin-bottom:8px;}
+  .awards-titles-list{display:flex;flex-wrap:wrap;gap:8px;}
+  .awards-title-chip{padding:7px 13px;border-radius:var(--radius-pill);background:var(--surface-soft);border:1px solid var(--border-glass);font-size:12px;font-weight:700;cursor:pointer;color:var(--ink-soft);transition:all .2s cubic-bezier(.2,.9,.3,1);}
+  .awards-title-chip:hover{transform:translateY(-2px);box-shadow:0 4px 12px var(--shadow);}
+  .awards-title-chip:active{transform:scale(.95);}
+  .awards-title-chip.equipped{background:linear-gradient(135deg,#E24E2C,#FF6B4A);color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(226,78,44,.35);}
+  .awards-empty-hint{
+    font-size:12.5px;color:var(--ink-faint);text-align:center;padding:8px 12px;
+    background:rgba(0,0,0,.02);border-radius:var(--radius-md);
+    border:1px dashed var(--border-glass-soft);
+  }
+  :root[data-theme="dark"] .awards-empty-hint{background:rgba(255,255,255,.03);}
 
   /* ============ BUTTONS ============ */
   .btn{
@@ -557,6 +836,114 @@
   .jr-reaction-comment{color:var(--ink-soft);font-style:italic;}
   .journal-truncated-note{font-size:11.5px;color:var(--ink-faint);text-align:center;padding-top:14px;}
 
+  .jr-delete-btn{
+    margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px;padding:4px 8px;border-radius:var(--radius-pill);
+    color:var(--ink-faint);opacity:.65;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;
+  }
+  .jr-delete-btn:hover{background:rgba(226,78,44,.12);color:var(--danger);opacity:1;transform:scale(1.1);}
+  .jr-delete-btn:active{transform:scale(.92);}
+  .jr-delete-btn.confirming{
+    background:rgba(226,78,44,.15);color:#d9381e;opacity:1;font-size:11px;font-weight:700;
+    padding:3px 9px;border:1px solid rgba(226,78,44,.3);
+  }
+
+  .jr-gps-badge{
+    display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:11px;font-weight:600;
+    color:var(--kelp);background:var(--surface-soft);border:1px solid rgba(79,209,192,.35);
+    padding:3px 9px;border-radius:var(--radius-pill);text-decoration:none;transition:background .15s;
+  }
+  .jr-gps-badge:hover{background:var(--surface-strong);text-decoration:underline;}
+  .rcard-gps-link{
+    display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;
+    color:var(--kelp);text-decoration:none;background:rgba(255,255,255,.75);padding:4px 10px;
+    border-radius:var(--radius-pill);border:1px solid rgba(79,209,192,.35);margin:6px auto;
+  }
+  .rcard-gps-link:hover{background:#fff;text-decoration:underline;}
+
+  /* ============ COVE QUEST 3-WAY CAROUSEL ============ */
+  .cove-seg-nav{margin:10px 0 14px;}
+  .cove-intro-hint{
+    text-align:center;padding:4px 12px 10px;font-size:12px;color:var(--ink-soft);
+  }
+
+  /* ============ GREEN QUEST MAP & DIRECTORY ============ */
+  .green-quest-panel{margin:10px 0 14px;}
+  .green-guide-box{
+    padding:12px 14px;border-radius:var(--radius-md);margin-bottom:12px;
+    background:linear-gradient(135deg,rgba(79,209,192,.15),rgba(27,107,99,.08));
+    border:1px solid rgba(79,209,192,.35);font-size:12.5px;
+  }
+  .green-guide-title{font-size:13px;font-weight:700;margin:0 0 6px;color:var(--kelp);}
+  .green-guide-step{margin:4px 0;line-height:1.45;color:var(--ink);}
+  .green-bonus-box{
+    padding:10px 14px;border-radius:var(--radius-md);margin-bottom:12px;
+    background:linear-gradient(135deg,rgba(255,201,77,.2),rgba(255,107,74,.1));
+    border:1px solid rgba(255,201,77,.4);font-size:12px;color:var(--ink);
+  }
+  .bonus-badge{font-size:10.5px;font-weight:700;text-transform:uppercase;color:var(--gold-ink);display:block;margin-bottom:3px;}
+  .nearest-spot-card{
+    padding:14px;border-radius:var(--radius-lg);margin-bottom:14px;
+    background:var(--surface-strong);border:1px solid var(--border-glass);
+    box-shadow:0 6px 16px var(--shadow);
+  }
+  .nearest-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+  .nearest-badge{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--kelp);letter-spacing:.02em;}
+  .nearest-locate-btn{
+    border:none;background:linear-gradient(135deg,var(--kelp),#2bb8a7);color:#fff;
+    padding:5px 12px;border-radius:var(--radius-pill);font-size:11px;font-weight:700;cursor:pointer;
+    box-shadow:0 4px 10px rgba(27,107,99,.25);transition:transform .15s;
+  }
+  .nearest-locate-btn:active{transform:scale(.94);}
+  .nearest-name{font-weight:700;font-size:14px;color:var(--ink);margin-bottom:3px;}
+  .nearest-addr{font-size:12px;color:var(--ink-soft);line-height:1.4;}
+  .nearest-distance{font-family:"Space Mono";font-size:11px;font-weight:700;color:var(--coral-dark);margin-top:4px;}
+  .nearest-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .btn-gmap-link{
+    display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-pill);
+    background:#4285F4;color:#fff;font-size:12px;font-weight:700;text-decoration:none;
+    box-shadow:0 4px 12px rgba(66,133,244,.3);transition:transform .15s;
+  }
+  .btn-gmap-link:active{transform:scale(.95);}
+  .btn-checkin-spot{
+    border:none;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-pill);
+    background:var(--surface-soft);border:1px solid var(--border-glass);color:var(--ink);
+    font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;
+  }
+  .btn-checkin-spot:hover{background:var(--surface-strong);border-color:var(--kelp);}
+
+  .green-map-container{
+    margin-bottom:14px;border-radius:var(--radius-lg);overflow:hidden;
+    border:1px solid var(--border-glass);background:var(--surface-strong);
+    box-shadow:0 8px 24px -8px var(--shadow);
+  }
+  .green-map-header{
+    padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;
+    background:var(--surface-soft);border-bottom:1px solid var(--border-glass);
+  }
+  .green-map-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px;}
+  .spot-counter-pill{font-size:10.5px;font-family:"Space Mono";background:var(--surface-strong);padding:2px 7px;border-radius:var(--radius-pill);color:var(--ink-soft);}
+  .green-city-filters{display:flex;gap:4px;}
+  .city-filter-btn{
+    border:none;background:var(--surface-strong);padding:4px 9px;border-radius:var(--radius-pill);
+    font-size:11px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:all .15s;border:1px solid var(--border-glass);
+  }
+  .city-filter-btn.active{background:var(--kelp);color:#fff;border-color:var(--kelp);}
+  .green-interactive-map{width:100%;height:220px;z-index:1;}
+
+  .green-spots-list-wrap{max-height:160px;overflow-y:auto;border-radius:var(--radius-md);border:1px solid var(--border-glass);background:var(--surface-soft);padding:8px 10px;}
+  .green-spots-list-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12px;font-weight:700;}
+  .green-spots-list{display:flex;flex-direction:column;gap:6px;}
+  .green-spot-row{
+    padding:8px 10px;border-radius:var(--radius-sm);background:var(--surface-strong);
+    border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:space-between;gap:8px;
+    cursor:pointer;transition:transform .15s,box-shadow .15s;
+  }
+  .green-spot-row:hover{transform:translateX(2px);border-color:var(--kelp);}
+  .green-spot-row-info{min-width:0;flex:1;}
+  .green-spot-row-name{font-weight:700;font-size:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .green-spot-row-addr{font-size:11px;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .green-spot-row-action{flex:none;font-size:11px;color:#4285F4;font-weight:700;text-decoration:none;}
+
   /* ============ TOASTS ============ */
   #toast-root{position:fixed;bottom:calc(var(--nav-h) + 18px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column-reverse;gap:8px;align-items:center;pointer-events:none;}
   .toast{
@@ -760,6 +1147,7 @@
   </button>
   <div class="header-right">
     <div class="streak-pill" id="streak-pill" title="Daily streak">🔥 <span id="streak-val">0</span></div>
+    <div class="freeze-badge" id="freeze-badge" title="Streak Freezes — protects your streak if you miss a day"><span class="freeze-icon">🧊</span><span id="freeze-count">0</span></div>
     <div class="coin-pill" id="coin-pill" title="Puffins">
       <svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>
       <span class="amt" id="coin-amt">0</span>
@@ -790,9 +1178,12 @@
 
     <section class="block" id="daily">
       <div class="block-head">
-        <h2>🌤️ Today's Quests</h2>
+        <div>
+          <h2>🌤️ Today's Quest <span class="section-badge section-badge-you">👤 You</span></h2>
+          <p class="rule-hint">Finish each day · Instant Puffins, no check needed</p>
+        </div>
         <div class="daily-head-right">
-          <p class="block-tag" id="daily-progress">0/3 done</p>
+          <p class="block-tag" id="daily-progress">0/4 done</p>
           <button class="daily-reroll-btn" id="daily-reroll-btn" type="button" title="Get new random quests" aria-label="Get new random quests">🔀</button>
         </div>
       </div>
@@ -802,32 +1193,75 @@
     <section class="block" id="fun">
       <div class="block-head">
         <div>
-          <h2>✨ Cool &amp; Fun Quests</h2>
-          <p>One-off adventures, worth extra Puffins. No rush — they don't expire.</p>
+          <h2>🫧 Cove Quest <span class="section-badge section-badge-community">👥 Community</span></h2>
+          <p>One-off adventures, worth extra Puffins when approved by community.</p>
         </div>
       </div>
-      <div class="quest-grid" id="fun-grid"></div>
+
+      <!-- 3-Way Liquid Glass Sliding Segmented Control for Cove Quests: Green, Culture, Random -->
+      <div class="segmented-nav-wrap cove-seg-nav">
+        <div class="segmented-nav-indicator" id="cove-seg-indicator"></div>
+        <button class="segmented-nav-btn active" id="btn-cove-green" data-cove-panel="0" type="button">
+          <span>🌿</span><span>Green</span>
+        </button>
+        <button class="segmented-nav-btn" id="btn-cove-culture" data-cove-panel="1" type="button">
+          <span>🏛️</span><span>Culture</span>
+        </button>
+        <button class="segmented-nav-btn" id="btn-cove-random" data-cove-panel="2" type="button">
+          <span>🎲</span><span>Random</span>
+        </button>
+      </div>
+
+      <!-- Sliding Viewport containing 3 Cove panels -->
+      <div class="fight-carousel-viewport" id="cove-carousel-viewport">
+        <div class="fight-carousel-track" id="cove-carousel-track">
+          <!-- Panel 0: Green Quests (Interactive Map, Pinned Locations & Guides) -->
+          <div class="fight-carousel-panel" id="cove-panel-green">
+            <div class="cove-intro-hint">
+              <span>🌱 Eco-Adventures with interactive maps & recycling drop-offs</span>
+            </div>
+            <div class="quest-grid" id="green-grid"></div>
+          </div>
+
+          <!-- Panel 1: Culture Quests (Museums, Pho Breakfast, Heritage) -->
+          <div class="fight-carousel-panel" id="cove-panel-culture">
+            <div class="cove-intro-hint">
+              <span>🏛️ Cultural journeys: museums, traditional morning Pho & heritage strolls</span>
+            </div>
+            <div class="quest-grid" id="culture-grid"></div>
+          </div>
+
+          <!-- Panel 2: Random Quests (Sunset, Learning, Reading, Nature) -->
+          <div class="fight-carousel-panel" id="cove-panel-random">
+            <div class="cove-intro-hint">
+              <span>🎲 Spontaneous outdoor, learning & wholesome community quests</span>
+            </div>
+            <div class="quest-grid" id="fun-grid"></div>
+          </div>
+        </div>
+      </div>
     </section>
   </section>
 
   <!-- ======= COVE PAGE ======= -->
   <section class="page" data-page="cove" id="page-cove">
     <div class="cove-page-head">
-      <h1>🫧 Networking Cove</h1>
-      <p>Swipe right to get your fellow puffineer's quest (and cheer them on), left to skip. Every pawsitive comment earns you a little bonus too.</p>
+      <h1>🫧 Community Cove</h1>
+      <p>Review quests from fellow puffineers!</p>
+      <div class="cove-reward-hint">🪙 +1 per review · +1 bonus for feedback</div>
     </div>
     <p class="cove-progress" id="cove-progress"></p>
     <div class="cove-deck">
       <div class="cove-stack" id="cove-stack"></div>
       <div class="cove-comment-row">
-        <input type="text" id="cove-comment-input" class="glass-input" maxlength="50" placeholder="Cheer them on (optional)" />
+        <input type="text" id="cove-comment-input" class="glass-input" maxlength="50" placeholder="Add feedback (+1 bonus 🪙)" />
         <span class="char-count" id="cove-comment-count">0/50</span>
       </div>
       <div class="cove-deck-actions">
-        <button class="rbtn rbtn-skip" id="cove-skip-btn" type="button">✕ Skip</button>
-        <button class="rbtn rbtn-approve" id="cove-approve-btn" type="button">🎉 Cheer</button>
+        <button class="rbtn rbtn-skip rbtn-reject" id="cove-skip-btn" type="button">✕ Reject</button>
+        <button class="rbtn rbtn-approve" id="cove-approve-btn" type="button">✓ Approve</button>
       </div>
-      <p class="cove-hint">Drag the card, or use the buttons</p>
+      <p class="cove-hint">Swipe right to Approve, left to Reject</p>
     </div>
   </section>
 
@@ -835,44 +1269,194 @@
   <section class="page" data-page="fight" id="page-fight">
     <div class="fight-page-head">
       <h1>⚔️ Fight for Puffins</h1>
-      <p>Time-boxed challenges. Fill the bar before it resets to win a bonus haul of Puffins.</p>
+      <p>Choose your battlefield! Timely challenges, City mysteries with AI check, or PvP duel races.</p>
     </div>
-    <div class="fight-grid" id="fight-list"></div>
 
-    <section class="block">
-      <div class="block-head">
-        <div>
-          <h2>🏙️ City Challenge</h2>
-          <p>Pick your city, then go find the mystery landmark hiding behind the blur.</p>
+    <!-- 3-Way Liquid Glass Sliding Segmented Control -->
+    <div class="segmented-nav-wrap">
+      <div class="segmented-nav-indicator" id="fight-seg-indicator"></div>
+      <button class="segmented-nav-btn active" id="btn-fight-timely" data-panel="0" type="button">
+        <span>⏱️</span><span>Timely Challenge</span>
+      </button>
+      <button class="segmented-nav-btn" id="btn-fight-city" data-panel="1" type="button">
+        <span>🏙️</span><span>City Challenge</span>
+      </button>
+      <button class="segmented-nav-btn" id="btn-fight-pvp" data-panel="2" type="button">
+        <span>⚔️</span><span>Fight Puffins</span>
+      </button>
+    </div>
+
+    <!-- Sliding Viewport containing 3 panels -->
+    <div class="fight-carousel-viewport" id="fight-carousel-viewport">
+      <div class="fight-carousel-track" id="fight-carousel-track">
+
+        <!-- Panel 0: Timely Challenges (Weekly, Monthly, Seasonal) -->
+        <div class="fight-carousel-panel" id="fight-panel-timely">
+          <div class="block-head" style="margin-top:8px;">
+            <div>
+              <h2>⏱️ Timely Challenges</h2>
+              <p>Finish Weekly & Monthly fights to win bonus Puffins, exclusive titles, and badges!</p>
+            </div>
+          </div>
+          <div class="fight-grid" id="fight-list"></div>
         </div>
+
+        <!-- Panel 1: City Challenge (AI photo match ~80-90% + GPS +-10m) -->
+        <div class="fight-carousel-panel" id="fight-panel-city">
+          <div class="block-head" style="margin-top:8px;">
+            <div>
+              <h2>🏙️ City Challenge <span class="section-badge section-badge-ai">🤖 AI</span></h2>
+              <p>Find mystery landmarks! GPS + photo verified by AI · Max 3 rounds.</p>
+            </div>
+          </div>
+          <div id="city-challenge-body"></div>
+        </div>
+
+        <!-- Panel 2: Fight Puffins (PvP Rooms: Friend Challenge or Random Match) -->
+        <div class="fight-carousel-panel" id="fight-panel-pvp">
+          <div class="block-head" style="margin-top:8px;">
+            <div>
+              <h2>⚔️ Fight Puffins (PvP)</h2>
+              <p>Challenge a friend or a random puffineer. First to finish the quest wins the pot!</p>
+            </div>
+          </div>
+
+          <!-- Create Challenge Card -->
+          <div class="pvp-create-box glass">
+            <h3 style="margin:0 0 6px;font-size:16px;">Create a Fight Room</h3>
+            <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 12px;">Wager Puffins on a speed-race quest.</p>
+
+            <div class="pvp-mode-toggle">
+              <button class="pvp-mode-btn active" id="pvp-mode-friend" type="button">👤 Challenge Friend</button>
+              <button class="pvp-mode-btn" id="pvp-mode-random" type="button">🎲 Random Match</button>
+            </div>
+
+            <div id="pvp-friend-input-wrap">
+              <label style="font-size:11.5px;font-weight:700;color:var(--ink-faint);text-transform:uppercase;">Opponent Username</label>
+              <input type="text" id="pvp-opponent-username" class="glass-input no-count" placeholder="e.g. SaltyWaddler" style="margin-top:4px;" />
+            </div>
+
+            <div style="margin-top:12px;">
+              <label style="font-size:11.5px;font-weight:700;color:var(--ink-faint);text-transform:uppercase;">Wager Stake (Per Player)</label>
+              <div class="pvp-stake-row">
+                <button class="pvp-stake-btn active" data-stake="10" type="button">10 🐧</button>
+                <button class="pvp-stake-btn" data-stake="25" type="button">25 🐧</button>
+                <button class="pvp-stake-btn" data-stake="50" type="button">50 🐧</button>
+                <button class="pvp-stake-btn" data-stake="100" type="button">100 🐧</button>
+              </div>
+            </div>
+
+            <button class="btn btn-primary" id="pvp-create-btn" type="button" style="width:100%;margin-top:6px;">
+              ⚔️ Send Challenge (<span id="pvp-stake-label">10</span> 🐧)
+            </button>
+          </div>
+
+          <!-- Invitations received -->
+          <div id="pvp-invites-section" style="margin-top:18px;">
+            <div class="block-head" style="margin-bottom:8px;">
+              <div>
+                <h3 style="font-size:15px;margin:0;">📬 Fight Invitations</h3>
+                <p style="font-size:12px;color:var(--ink-soft);margin:2px 0 0;">Friends challenging you to a quest duel</p>
+              </div>
+            </div>
+            <div class="pvp-list" id="pvp-invites-list"></div>
+          </div>
+
+          <!-- Active Fights -->
+          <div id="pvp-active-section" style="margin-top:18px;">
+            <div class="block-head" style="margin-bottom:8px;">
+              <div>
+                <h3 style="font-size:15px;margin:0;">🔥 Active Duels</h3>
+                <p style="font-size:12px;color:var(--ink-soft);margin:2px 0 0;">First one to complete the quest claims the pot!</p>
+              </div>
+            </div>
+            <div class="pvp-list" id="pvp-active-list"></div>
+          </div>
+
+          <!-- Public Rooms waiting for random opponent -->
+          <div id="pvp-public-section" style="margin-top:18px;">
+            <div class="block-head" style="margin-bottom:8px;">
+              <div>
+                <h3 style="font-size:15px;margin:0;">🌐 Open Matchmaking Rooms</h3>
+                <p style="font-size:12px;color:var(--ink-soft);margin:2px 0 0;">Jump in and fight random puffineers</p>
+              </div>
+            </div>
+            <div class="pvp-list" id="pvp-public-list"></div>
+          </div>
+        </div>
+
       </div>
-      <div id="city-challenge-body"></div>
-    </section>
+    </div>
   </section>
 
   <!-- ======= FISH PAGE ======= -->
   <section class="page" data-page="fish" id="page-fish">
     <div class="fish-page-head">
-      <h1>🎣 The Fishing Hole</h1>
-      <p>Spend Puffins to cast a line for bonus coins, badges, and collectible titles.</p>
-    </div>
-    <div class="fish-pond glass">
-      <div class="fish-stage" id="fish-stage">
-        <button class="btn btn-primary fish-cast-btn" id="fish-cast-btn" type="button">🎣 Cast Line</button>
-      </div>
-      <p class="fish-cost" id="fish-cost-label">Costs 15 Puffins per cast</p>
+      <h1>🎣 The Fishing Pond</h1>
+      <p>Catch fish to feed and grow your puffin mascot, and reel in cute hats, clothes, and shoes to dress it up!</p>
     </div>
 
-    <div class="fish-block">
-      <h3 class="fish-section-title">Titles</h3>
-      <div class="title-list" id="title-list"></div>
+    <!-- Central Puffin Sanctuary & Growth -->
+    <div class="puffin-sanctuary">
+      <div class="puffin-growth-header">
+        <div class="growth-tier-pill" id="fish-growth-tier-pill">
+          <span id="fish-tier-icon">🐣</span>
+          <span id="fish-tier-name">Tiny Fledge · Lv. 1</span>
+        </div>
+        <div class="growth-progress-wrap">
+          <div class="growth-bar-track">
+            <div class="growth-bar-fill" id="fish-growth-bar" style="width:0%"></div>
+          </div>
+          <div class="growth-progress-sub">
+            <span id="fish-growth-count">0 feed points</span>
+            <span id="fish-growth-next">Next: 4 points</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mascot Doll Stage (Puffin in the middle with hats, clothes, shoes) -->
+      <div class="mascot-doll-stage">
+        <div class="doll-scale-wrapper" id="doll-scale-wrapper">
+          <div class="doll-accessory doll-hat" id="doll-hat-display"></div>
+          <div class="doll-puffin-base">
+            <svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>
+          </div>
+          <div class="doll-accessory doll-clothes" id="doll-clothes-display"></div>
+          <div class="doll-accessory doll-shoes" id="doll-shoes-display"></div>
+        </div>
+      </div>
+
+      <!-- Fishing Hole directly under the Puffin -->
+      <div class="fishing-hole-container">
+        <div class="fishing-hole-ripples"></div>
+        <div class="fish-cast-action">
+          <button class="btn btn-primary fish-cast-btn" id="fish-cast-btn" type="button">
+            🎣 Cast Line (15 🐧)
+          </button>
+        </div>
+      </div>
+      <div class="catch-result-box" id="fish-stage"></div>
     </div>
-    <div class="fish-block">
-      <h3 class="fish-section-title">Badge Case</h3>
-      <div class="badge-case" id="badge-case"></div>
+
+    <!-- Wardrobe Section (Hats, Clothes, Shoes) -->
+    <div class="wardrobe-section">
+      <div class="block-head">
+        <div>
+          <h2>🎀 Puffin Wardrobe</h2>
+          <p>Dress up your puffin with items reeled from the pond</p>
+        </div>
+      </div>
+      <div class="wardrobe-tabs">
+        <button class="wardrobe-tab-btn active" data-cat="hat" type="button">🧢 Hats</button>
+        <button class="wardrobe-tab-btn" data-cat="clothes" type="button">🦺 Clothes</button>
+        <button class="wardrobe-tab-btn" data-cat="shoes" type="button">👟 Shoes</button>
+      </div>
+      <div class="wardrobe-grid" id="wardrobe-grid"></div>
     </div>
+
+    <!-- Recent Catches (Fish & Outfits caught) -->
     <div class="fish-block">
-      <h3 class="fish-section-title">Recent Catches</h3>
+      <h3 class="fish-section-title">Recent Pond Catches</h3>
       <div class="catch-log" id="catch-log"></div>
     </div>
   </section>
@@ -936,6 +1520,20 @@
       <div class="stat-tile"><div class="stat-num stat-count">0</div><div class="stat-label">Quests done</div></div>
     </div>
 
+    <!-- Trophies & Awards Shelf (Weekly/Monthly Fight badges & titles) -->
+    <div class="profile-awards glass">
+      <div class="awards-header">
+        <h3 class="awards-title">🏆 Trophies & Badges</h3>
+        <p class="awards-sub">Win Fights to collect these!</p>
+      </div>
+      <div class="awards-section-label">🏅 Badges</div>
+      <div class="awards-badges-grid" id="bird-badges-grid"></div>
+      <div class="awards-titles-section">
+        <div class="awards-section-label">🪶 Titles <span style="font-weight:400;text-transform:none;letter-spacing:0;">(tap to equip)</span></div>
+        <div class="awards-titles-list" id="bird-titles-list"></div>
+      </div>
+    </div>
+
     <div class="journal-list" id="bird-journal-list"></div>
 
     <div class="share-row" style="margin-top:22px;">
@@ -967,20 +1565,170 @@
       <span id="modal-reward-amt">+10 Puffins</span>
     </div>
 
-    <div id="modal-body-idle">
-      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload a photo for this quest">
-        <svg viewBox="0 0 24 24"><use href="#i-camera"/></svg>
-        <p id="dropzone-label">Tap to snap or upload a photo (optional)</p>
-        <p class="dz-sub" id="dropzone-sub">Add a photo for +2 bonus Puffins</p>
+    <!-- Green Quest Interactive Map & Drop-off Guide Container -->
+    <div id="green-quest-panel" class="green-quest-panel" style="display:none;">
+      <!-- Step-by-step guide or special bonus note -->
+      <div class="green-guide-box glass" id="green-guide-box" style="display:none;">
+        <h4 class="green-guide-title">📋 Eco Guide & Prep</h4>
+        <div id="green-guide-steps"></div>
       </div>
-      <input type="file" id="file-input" accept="image/*" capture="environment" class="visually-hidden" />
+      <div class="green-bonus-box glass" id="green-bonus-box" style="display:none;">
+        <span class="bonus-badge">🏷️ Partner Bonus</span>
+        <p id="green-bonus-text" style="margin:0;"></p>
+      </div>
+
+      <!-- Nearest Spot Recommendation Card -->
+      <div class="nearest-spot-card glass" id="nearest-spot-card">
+        <div class="nearest-head">
+          <span class="nearest-badge">🎯 Nearest Drop-off to You</span>
+          <button type="button" class="nearest-locate-btn" id="btn-find-nearest">📍 Find Nearest</button>
+        </div>
+        <div class="nearest-info" id="nearest-spot-info">
+          <div class="nearest-name" id="nearest-spot-name">Tap "Find Nearest" or pick a spot on the map</div>
+          <div class="nearest-addr" id="nearest-spot-addr">Browse pinned locations in Vietnam & Singapore below</div>
+          <div class="nearest-distance" id="nearest-spot-dist"></div>
+        </div>
+        <div class="nearest-actions" id="nearest-actions" style="display:none;">
+          <a href="#" target="_blank" rel="noopener noreferrer" class="btn-gmap-link" id="nearest-gmap-btn">
+            🗺️ Open in Google Maps ↗️
+          </a>
+          <button type="button" class="btn-checkin-spot" id="nearest-checkin-btn">
+            📍 Verify Location Here
+          </button>
+        </div>
+      </div>
+
+      <!-- Interactive Map Section -->
+      <div class="green-map-container">
+        <div class="green-map-header">
+          <div class="green-map-title">
+            <span>🗺️ Verified Locations Map</span>
+            <span class="spot-counter-pill" id="green-spot-count">0 spots</span>
+          </div>
+          <!-- City Filter Pills -->
+          <div class="green-city-filters" id="green-city-filters">
+            <button type="button" class="city-filter-btn active" data-city="all">All</button>
+            <button type="button" class="city-filter-btn" data-city="Hanoi">Hà Nội</button>
+            <button type="button" class="city-filter-btn" data-city="HCMC">TP.HCM</button>
+            <button type="button" class="city-filter-btn" data-city="Binh Duong">Bình Dương</button>
+            <button type="button" class="city-filter-btn" data-city="Da Nang">Đà Nẵng</button>
+            <button type="button" class="city-filter-btn" data-city="Singapore">Singapore</button>
+          </div>
+        </div>
+        <div id="green-interactive-map" class="green-interactive-map"></div>
+      </div>
+
+      <!-- Scrollable Spots Directory -->
+      <div class="green-spots-list-wrap">
+        <div class="green-spots-list-head">
+          <span>📍 Pinned Locations List</span>
+          <span style="font-size:11px;color:var(--ink-faint);">Tap any pin to view in Google Maps</span>
+        </div>
+        <div class="green-spots-list" id="green-spots-list"></div>
+      </div>
+    </div>
+
+    <div id="modal-body-idle">
+      <div class="modal-quest-type-pill" id="modal-quest-type-pill"></div>
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload photo or video for this quest">
+        <svg viewBox="0 0 24 24"><use href="#i-camera"/></svg>
+        <p id="dropzone-label">Tap to snap or upload a photo or video (optional)</p>
+        <p class="dz-sub" id="dropzone-sub">Add photo or video proof for +2 bonus Puffins</p>
+      </div>
+      <input type="file" id="file-input" accept="image/*,video/*" capture="environment" class="visually-hidden" />
       <div id="preview-holder"></div>
+
+      <div class="proof-toolbar">
+        <button class="btn btn-ghost btn-sm proof-gps-btn" id="gps-btn" type="button">
+          <span>📍 Share GPS (optional)</span>
+        </button>
+        <button class="btn btn-ghost btn-sm proof-gps-btn" id="gps-dev-btn" type="button" style="display:none;font-size:11px;opacity:0.85;" title="Simulate on-site GPS for testing">
+          <span>🧪 Mock GPS (±0m)</span>
+        </button>
+        <div class="gps-badge" id="gps-badge" style="display:none;">
+          <span class="gps-dot"></span>
+          <span id="gps-coords-text">📍 GPS Verified</span>
+          <button type="button" class="gps-remove-btn" id="gps-remove-btn" aria-label="Remove GPS proof">✕</button>
+        </div>
+      </div>
+      <div class="proof-note" id="proof-note" style="display:none;">
+        <span id="proof-note-text">📸 To go to the community, you must take a picture · 📍 Share GPS (optional)</span>
+      </div>
+
       <div class="caption-row">
         <input type="text" id="caption-input" class="glass-input" maxlength="50" placeholder="Add a note for your journey (optional, +1 bonus)" />
         <span class="char-count" id="caption-count">0/50</span>
       </div>
+
+      <!-- Automatically post to bird profile toggle: checked by default, can be unclicked -->
+      <div class="post-to-profile-row">
+        <label class="glass-checkbox-label" for="post-to-profile-toggle">
+          <input type="checkbox" id="post-to-profile-toggle" checked />
+          <span class="glass-checkbox-custom"></span>
+          <span class="glass-checkbox-text">Automatically post to your bird profile</span>
+        </label>
+      </div>
+
       <div class="modal-actions">
         <button class="btn btn-primary" id="submit-btn" type="button">Complete Quest</button>
+      </div>
+    </div>
+
+    <!-- 3-Puffin Verification Stage for City Challenge -->
+    <div id="modal-body-city-verify" style="display:none;" class="city-verify-body">
+      <div class="verify-heading">
+        <h4>Puffin Verification Patrol 🐧🔍</h4>
+        <p class="verify-sub">Checking landmark criteria: GPS proximity &amp; AI photo match...</p>
+      </div>
+
+      <div class="puffin-trio-container">
+        <!-- Puffin 1: GPS Scout -->
+        <div class="puffin-trio-card" id="trio-puffin-1">
+          <div class="puffin-trio-avatar">
+            <span>🧭</span>
+            <div class="puffin-pulse-ring"></div>
+          </div>
+          <div class="puffin-trio-role">Puffin 1: GPS Scout</div>
+          <div class="puffin-trio-desc">Proximity within ±10m</div>
+          <div class="puffin-trio-status status-waiting" id="puffin-1-status">Waiting...</div>
+          <div class="puffin-trio-detail" id="puffin-1-detail">Scouting location</div>
+        </div>
+
+        <!-- Puffin 2: AI Detective -->
+        <div class="puffin-trio-card" id="trio-puffin-2">
+          <div class="puffin-trio-avatar">
+            <span>🔍</span>
+            <div class="puffin-pulse-ring"></div>
+          </div>
+          <div class="puffin-trio-role">Puffin 2: AI Detective</div>
+          <div class="puffin-trio-desc">Landmark Fit ~80–90%</div>
+          <div class="puffin-trio-status status-waiting" id="puffin-2-status">Waiting...</div>
+          <div class="puffin-trio-detail" id="puffin-2-detail">Analyzing features</div>
+        </div>
+
+        <!-- Puffin 3: Approval Chief -->
+        <div class="puffin-trio-card" id="trio-puffin-3">
+          <div class="puffin-trio-avatar">
+            <span>🌟</span>
+            <div class="puffin-pulse-ring"></div>
+          </div>
+          <div class="puffin-trio-role">Puffin 3: Chief Puffin</div>
+          <div class="puffin-trio-desc">Auto-Approval Verdict</div>
+          <div class="puffin-trio-status status-waiting" id="puffin-3-status">Waiting...</div>
+          <div class="puffin-trio-detail" id="puffin-3-detail">Final verdict</div>
+        </div>
+      </div>
+
+      <div class="modal-actions" id="city-verify-actions" style="margin-top:16px;">
+        <button class="btn btn-primary" id="city-verify-done-btn" type="button" style="display:none;width:100%;">
+          🎉 Awesome! Claim Reward
+        </button>
+        <button class="btn btn-primary" id="city-verify-retry-btn" type="button" style="display:none;width:100%;">
+          🔄 Try Again / Retake Photo
+        </button>
+        <button class="btn btn-ghost" id="city-verify-cancel-btn" type="button" style="display:none;width:100%;">
+          Close
+        </button>
       </div>
     </div>
 
@@ -989,7 +1737,7 @@
       <h4 id="done-title">Quest Complete!</h4>
       <p id="done-msg">You earned 10 Puffins.</p>
       <div class="share-row" id="done-share-row" style="display:none;">
-        <button class="share-link-btn" id="done-share-btn" type="button">Send this quest to a friend to cheer</button>
+        <button class="share-link-btn" id="done-share-btn" type="button">Send this quest to a friend to approve</button>
       </div>
       <div class="modal-actions"><button class="btn btn-ghost" id="done-close-btn" type="button" style="width:100%;">Nice</button></div>
     </div>
@@ -1024,6 +1772,19 @@
       <div class="stat-tile"><div class="stat-num stat-streak">0</div><div class="stat-label">Streak</div></div>
       <div class="stat-tile"><div class="stat-num stat-best">0</div><div class="stat-label">Best streak</div></div>
       <div class="stat-tile"><div class="stat-num stat-count">0</div><div class="stat-label">Quests done</div></div>
+    </div>
+
+    <!-- Shared Awards Shelf -->
+    <div class="profile-awards glass">
+      <div class="awards-header">
+        <h3 class="awards-title">🏆 Trophies & Badges</h3>
+        <p class="awards-sub">Earned from Weekly & Monthly Fights</p>
+      </div>
+      <div class="awards-badges-grid" id="shared-badges-grid"></div>
+      <div class="awards-titles-section">
+        <div class="awards-sub-label">Earned Titles</div>
+        <div class="awards-titles-list" id="shared-titles-list"></div>
+      </div>
     </div>
 
     <div class="profile-shared-banner always">
@@ -1181,6 +1942,7 @@
 <div id="toast-root" aria-live="polite"></div>
 <canvas id="confetti-canvas"></canvas>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

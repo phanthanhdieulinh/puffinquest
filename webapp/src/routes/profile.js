@@ -20,7 +20,7 @@ router.get("/by/:username", async (req, res) => {
   const { rows } = await pool.query("SELECT * FROM users WHERE username_lower = $1", [username]);
   const user = rows[0];
   if (!user) return res.status(404).json({ error: "No puffineer by that name." });
-  const journal = await fetchJournal(user.id, 40);
+  const journal = await fetchJournal(user.id, 40, true);
   res.json({ profile: serializeUserPublic(user, journal) });
 });
 
@@ -70,4 +70,46 @@ router.patch("/photo", requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+function toArray(val) {
+  if (Array.isArray(val)) return val;
+  if (!val || typeof val !== "string" || val === "{}") return [];
+  if (val.startsWith("{") && val.endsWith("}")) {
+    return val.slice(1, -1).split(",").map((s) => s.trim().replace(/^"|"$/g, "")).filter(Boolean);
+  }
+  return [];
+}
+
+router.delete("/journal/:id", requireAuth, async (req, res) => {
+  const subId = parseInt(req.params.id, 10);
+  if (isNaN(subId)) return res.status(400).json({ error: "Invalid entry ID." });
+
+  const { rows } = await pool.query(
+    "SELECT * FROM submissions WHERE id = $1 AND user_id = $2",
+    [subId, req.user.id]
+  );
+  const sub = rows[0];
+  if (!sub) return res.status(404).json({ error: "Entry not found or already deleted." });
+
+  await pool.query("DELETE FROM submissions WHERE id = $1", [subId]);
+
+  const user = await refreshUser(req.user);
+  const dailyDone = toArray(user.daily_done_ids).filter((id) => id !== sub.quest_id);
+  const funDone = toArray(user.fun_done_ids).filter((id) => id !== sub.quest_id);
+  const newDoneCount = Math.max(0, (user.total_quests_done || 0) - (sub.status === "approved" ? 1 : 0));
+
+  const { rows: updatedUser } = await pool.query(
+    "UPDATE users SET daily_done_ids = $2, fun_done_ids = $3, total_quests_done = $4 WHERE id = $1 RETURNING *",
+    [user.id, dailyDone, funDone, newDoneCount]
+  );
+
+  const freshJournal = await fetchJournal(user.id, 120);
+  res.json({
+    ok: true,
+    message: "Deleted successfully",
+    user: serializeUserPrivate(updatedUser[0]),
+    journal: freshJournal
+  });
+});
+
 module.exports = router;
+

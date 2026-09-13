@@ -17,6 +17,9 @@ async function refreshUser(user) {
     patch.daily_quest_ids = content.dailyQuestIdsFor(today);
     patch.daily_done_ids = [];
     dirty = true;
+  } else if (toArray(user.daily_quest_ids).length < 4) {
+    patch.daily_quest_ids = content.dailyQuestIdsFor(today);
+    dirty = true;
   }
   if (user.cove_date !== today) {
     patch.cove_date = today;
@@ -27,13 +30,22 @@ async function refreshUser(user) {
     const last = new Date(user.last_completion_date);
     const lastStr = last.toISOString().slice(0, 10);
     const diffDays = Math.round((new Date(today + "T00:00:00") - new Date(lastStr + "T00:00:00")) / 86400000);
-    if (diffDays > 1 && user.streak !== 0) {
+    if (diffDays === 2 && user.streak > 0 && (user.streak_freezes || 0) > 0) {
+      // Missed exactly 1 day — consume a streak freeze to preserve streak
+      patch.streak_freezes = (user.streak_freezes || 0) - 1;
+      patch._freeze_used = true; // internal flag, not a real column
+      dirty = true;
+    } else if (diffDays > 1 && user.streak !== 0) {
       patch.streak = 0;
       dirty = true;
     }
   }
 
   if (!dirty) return user;
+
+  // Remove internal flag before building SQL
+  const freezeUsed = !!patch._freeze_used;
+  delete patch._freeze_used;
 
   const fields = Object.keys(patch);
   const setClause = fields.map((f, i) => `${f} = $${i + 2}`).join(", ");
@@ -42,29 +54,57 @@ async function refreshUser(user) {
     `UPDATE users SET ${setClause} WHERE id = $1 RETURNING *`,
     [user.id, ...values]
   );
-  return rows[0];
+  const updated = rows[0];
+  if (freezeUsed) updated._freeze_used = true;
+  return updated;
 }
 
-async function fetchJournal(userId, limit) {
+async function fetchJournal(userId, limit, isPublic = false) {
   const { rows } = await pool.query(
-    `SELECT s.*,
-       COALESCE(
-         (SELECT json_agg(json_build_object('comment', x.comment) ORDER BY x.created_at) FROM (
-           SELECT r.comment, r.created_at FROM reviews r WHERE r.submission_id = s.id AND r.decision = 'approve' AND r.comment <> ''
-           UNION ALL
-           SELECT c.comment, c.created_at FROM cheers c WHERE c.submission_id = s.id AND c.decision = 'cheer' AND c.comment <> ''
-         ) x), '[]'
-       ) AS reactions
-     FROM submissions s
-     WHERE s.user_id = $1 AND s.status = 'approved'
-     ORDER BY s.approved_at DESC
+    `SELECT * FROM submissions
+     WHERE user_id = $1 AND status = 'approved' AND (post_to_profile IS TRUE OR post_to_profile IS NULL)
+     ORDER BY approved_at DESC, created_at DESC
      LIMIT $2`,
     [userId, limit || 120]
   );
-  return rows.map(serializeSubmission);
+  if (!rows.length) return [];
+
+  // Exclude City Challenge from Bird profile journal because it is a challenge
+  const cityIds = new Set(content.cityLandmarksFlat().map((l) => l.id));
+  const filteredRows = rows.filter((r) => !cityIds.has(r.quest_id));
+  if (!filteredRows.length) return [];
+
+  const subIds = filteredRows.map((r) => r.id);
+  const inList = subIds.join(",");
+  const reviewsRes = await pool.query(
+    `SELECT submission_id, comment, created_at FROM reviews WHERE submission_id IN (${inList}) AND decision = 'approve' AND comment <> ''`
+  ).catch(() => ({ rows: [] }));
+  const cheersRes = await pool.query(
+    `SELECT submission_id, comment, created_at FROM cheers WHERE submission_id IN (${inList}) AND decision = 'cheer' AND comment <> ''`
+  ).catch(() => ({ rows: [] }));
+
+  const reactionsMap = {};
+  for (const r of [...reviewsRes.rows, ...cheersRes.rows]) {
+    if (!reactionsMap[r.submission_id]) reactionsMap[r.submission_id] = [];
+    reactionsMap[r.submission_id].push({ comment: r.comment, createdAt: r.created_at });
+  }
+
+  for (const row of filteredRows) {
+    row.reactions = reactionsMap[row.id] || [];
+  }
+  return filteredRows.map(serializeSubmission);
 }
 
 function serializeSubmission(row) {
+  const ts = new Date(row.approved_at || row.created_at || Date.now());
+  const dateStr = !isNaN(ts.getTime()) ? ts.toISOString().slice(0, 10) : "";
+  const timeStr = !isNaN(ts.getTime()) ? ts.toISOString().slice(11, 16) : "";
+  const rawReactions = Array.isArray(row.reactions)
+    ? row.reactions
+    : typeof row.reactions === "string"
+    ? JSON.parse(row.reactions)
+    : [];
+
   return {
     id: row.id,
     questId: row.quest_id,
@@ -74,14 +114,26 @@ function serializeSubmission(row) {
     reward: row.base_reward + row.bonus_reward,
     caption: row.caption || "",
     thumb: row.thumb || null,
-    date: (row.approved_at || row.created_at).toISOString().slice(0, 10),
-    time: (row.approved_at || row.created_at).toISOString().slice(11, 16),
-    reactions: (row.reactions || []).map((r) => ({ comment: r.comment }))
+    proofGps: row.proof_gps || null,
+    mediaType: row.media_type || "image",
+    postToProfile: row.post_to_profile !== false,
+    date: dateStr,
+    time: timeStr,
+    reactions: rawReactions.map((r) => ({ comment: r.comment }))
   };
 }
 
 function socialFlagsOf(user) {
   return { facebook: user.social_facebook, instagram: user.social_instagram, linkedin: user.social_linkedin };
+}
+
+function toArray(val) {
+  if (Array.isArray(val)) return val;
+  if (!val || typeof val !== "string" || val === "{}") return [];
+  if (val.startsWith("{") && val.endsWith("}")) {
+    return val.slice(1, -1).split(",").map((s) => s.trim().replace(/^"|"$/g, "")).filter(Boolean);
+  }
+  return [];
 }
 
 function serializeUserPrivate(user) {
@@ -96,15 +148,23 @@ function serializeUserPrivate(user) {
     totalQuestsDone: user.total_quests_done,
     firstActiveDate: user.first_active_date,
     equippedTitle: user.equipped_title,
-    titles: user.titles || [],
-    badges: user.badges || [],
-    dailyQuestIds: user.daily_quest_ids || [],
-    dailyDoneIds: user.daily_done_ids || [],
-    funDoneIds: user.fun_done_ids || [],
+    titles: toArray(user.titles),
+    badges: toArray(user.badges),
+    dailyQuestIds: toArray(user.daily_quest_ids),
+    dailyDoneIds: toArray(user.daily_done_ids),
+    funDoneIds: toArray(user.fun_done_ids),
     cheeredToday: user.cove_approved_today,
     city: user.city || null,
+    puffinGrowth: user.puffin_growth || 0,
+    puffinGrowthTier: content.getPuffinGrowthTier(user.puffin_growth || 0),
+    puffinItems: toArray(user.puffin_items),
+    equippedHat: user.equipped_hat || null,
+    equippedClothes: user.equipped_clothes || null,
+    equippedShoes: user.equipped_shoes || null,
     socialFlags: socialFlagsOf(user),
-    socialLinks: content.buildSocialLinks(user.username, socialFlagsOf(user))
+    socialLinks: content.buildSocialLinks(user.username, socialFlagsOf(user)),
+    streakFreezes: user.streak_freezes || 0,
+    freezeUsed: !!user._freeze_used
   };
 }
 
@@ -114,13 +174,21 @@ function serializeUserPublic(user, journal) {
     displayName: user.display_name || user.username,
     avatarPhoto: user.avatar_photo,
     equippedTitle: user.equipped_title,
+    titles: toArray(user.titles),
+    badges: toArray(user.badges),
     balance: user.balance,
     streak: user.streak,
     bestStreak: user.best_streak,
     firstActiveDate: user.first_active_date,
     questsDone: user.total_quests_done,
+    puffinGrowth: user.puffin_growth || 0,
+    puffinGrowthTier: content.getPuffinGrowthTier(user.puffin_growth || 0),
+    equippedHat: user.equipped_hat || null,
+    equippedClothes: user.equipped_clothes || null,
+    equippedShoes: user.equipped_shoes || null,
     socialLinks: content.buildSocialLinks(user.username, socialFlagsOf(user)),
-    journal: journal || []
+    journal: journal || [],
+    streakFreezes: user.streak_freezes || 0
   };
 }
 
@@ -152,8 +220,8 @@ async function finalizeSubmission(submissionId) {
     }
     const bestStreak = Math.max(owner.best_streak || 0, streak);
 
-    const dailyDone = new Set(owner.daily_done_ids || []);
-    const funDone = new Set(owner.fun_done_ids || []);
+    const dailyDone = new Set(toArray(owner.daily_done_ids));
+    const funDone = new Set(toArray(owner.fun_done_ids));
     if (submission.is_daily) dailyDone.add(submission.quest_id);
     else funDone.add(submission.quest_id);
 
