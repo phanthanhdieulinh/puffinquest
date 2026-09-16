@@ -411,7 +411,7 @@ const LOOT_TABLE = [
   { id: "hero-cape", label: "Hero Cape", icon: "🦸", rarity: "rare", weight: 2, type: "wardrobe", category: "clothes" },
   { id: "roller-skates", label: "Tiny Skates", icon: "🛼", rarity: "legendary", weight: 1, type: "wardrobe", category: "shoes" },
   // Streak Freeze (protects streak for 1 missed day)
-  { id: "streak-freeze", label: "Streak Freeze", icon: "🧊", rarity: "rare", weight: 4, type: "streak-freeze" }
+  { id: "streak-freeze", label: "Streak Freeze", icon: "🧊", rarity: "rare", weight: 4, type: "streak-freeze", desc: "Protect 1 missed day!" }
 ];
 
 const NAME_ADJ = ["Misty", "Salty", "Windy", "Foamy", "Pebble", "Chilly", "Reedy", "Driftwood", "Cloudy", "Tidepool", "Brisk", "Harbor", "Foggy", "Rocky", "Breezy", "Marsh"];
@@ -675,13 +675,28 @@ function seededShuffle(arr, seedFn) {
   }
   return a;
 }
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+function todayStr(dateOrTz) {
+  if (typeof dateOrTz === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateOrTz)) {
+    return dateOrTz;
+  }
+  const tz = typeof dateOrTz === "string" && dateOrTz.includes("/") ? dateOrTz : (process.env.APP_TIMEZONE || "Asia/Ho_Chi_Minh");
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  } catch (e) {
+    return new Date().toISOString().slice(0, 10);
+  }
 }
 function yesterdayStr(from) {
-  const y = new Date((from || todayStr()) + "T00:00:00");
-  y.setDate(y.getDate() - 1);
+  const base = (from || todayStr()).slice(0, 10);
+  const y = new Date(base + "T00:00:00Z");
+  y.setUTCDate(y.getUTCDate() - 1);
   return y.toISOString().slice(0, 10);
+}
+function diffDays(dateA, dateB) {
+  if (!dateA || !dateB) return 0;
+  const a = new Date(String(dateA).slice(0, 10) + "T00:00:00Z");
+  const b = new Date(String(dateB).slice(0, 10) + "T00:00:00Z");
+  return Math.round((a.getTime() - b.getTime()) / 86400000);
 }
 function dailyQuestIdsFor(dateStr) {
   const rng = hashStr("daily-" + dateStr);
@@ -776,6 +791,7 @@ module.exports = {
   seededShuffle,
   todayStr,
   yesterdayStr,
+  diffDays,
   dailyQuestIdsFor,
   weekStartStr,
   seasonKeyStr,

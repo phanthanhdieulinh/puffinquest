@@ -23,7 +23,8 @@ function toArray(val) {
 }
 
 router.get("/", requireAuth, async (req, res) => {
-  const user = await refreshUser(req.user);
+  const clientDate = req.headers["x-client-date"] || (req.user && req.user._client_date);
+  const user = await refreshUser(req.user, clientDate);
   const { rows: pendingRows } = await pool.query(
     "SELECT quest_id FROM submissions WHERE user_id = $1 AND status = 'pending'",
     [user.id]
@@ -36,16 +37,36 @@ router.get("/", requireAuth, async (req, res) => {
   });
 });
 
-// Lets a user swap today's 4 Daily Quests for a fresh random pick (excluding
-// ones already done today). Purely a convenience reroll — no cost, no limit.
+// Lets a user swap outstanding Daily Quests for a fresh random pick.
+// Completed daily quests stay still in place; only outstanding ones are randomized.
 router.post("/reroll", requireAuth, async (req, res) => {
-  const user = await refreshUser(req.user);
+  const clientDate = req.headers["x-client-date"] || (req.user && req.user._client_date);
+  const user = await refreshUser(req.user, clientDate);
   const doneIds = toArray(user.daily_done_ids);
-  const available = content.DAILY_POOL.filter((q) => !doneIds.includes(q.id));
+  const currentDailyIds = toArray(user.daily_quest_ids);
+
+  // Keep finished quests in place
+  const finishedIds = currentDailyIds.filter((id) => doneIds.includes(id));
+  const slotsToFill = Math.max(0, 4 - finishedIds.length);
+
+  if (slotsToFill === 0) {
+    return res.json({ dailyQuestIds: currentDailyIds });
+  }
+
+  // Pick new quests from DAILY_POOL, excluding already finished quests and current outstanding ones if possible
+  const excluded = new Set([...doneIds, ...finishedIds]);
+  const currentOutstanding = currentDailyIds.filter((id) => !doneIds.includes(id));
+  let available = content.DAILY_POOL.filter((q) => !excluded.has(q.id) && !currentOutstanding.includes(q.id));
+  if (available.length < slotsToFill) {
+    available = content.DAILY_POOL.filter((q) => !excluded.has(q.id));
+  }
   const shuffled = content.seededShuffle(available.length ? available : content.DAILY_POOL, Math.random);
-  const newIds = shuffled.slice(0, 4).map((q) => q.id);
-  await pool.query("UPDATE users SET daily_quest_ids = $2 WHERE id = $1", [user.id, newIds]);
-  res.json({ dailyQuestIds: newIds });
+  const newPickedIds = shuffled.slice(0, slotsToFill).map((q) => q.id);
+
+  // Preserve finished ones, replace outstanding ones (keeping total 4)
+  const newDailyIds = [...finishedIds, ...newPickedIds];
+  await pool.query("UPDATE users SET daily_quest_ids = $2 WHERE id = $1", [user.id, newDailyIds]);
+  res.json({ dailyQuestIds: newDailyIds });
 });
 
 router.get("/pending", requireAuth, async (req, res) => {
@@ -85,7 +106,8 @@ router.post("/submit", requireAuth, async (req, res) => {
   const quest = content.findQuest(questId);
   if (!quest) return res.status(404).json({ error: "Unknown quest." });
 
-  const user = await refreshUser(req.user);
+  const clientDate = req.headers["x-client-date"] || (req.user && req.user._client_date);
+  const user = await refreshUser(req.user, clientDate);
   const isDaily = toArray(user.daily_quest_ids).includes(questId);
   const isFun = content.FUN_POOL.some((q) => q.id === questId);
   const isGreen = content.GREEN_COVE_QUESTS.some((q) => q.id === questId);
@@ -96,11 +118,23 @@ router.post("/submit", requireAuth, async (req, res) => {
   }
 
   const doneIds = isDaily ? toArray(user.daily_done_ids) : toArray(user.fun_done_ids);
+  if (isDaily && doneIds.length >= 4) {
+    return res.status(400).json({ error: "You have already completed the maximum of 4 Daily Quests for today! Come back tomorrow at 23:59 PM for new quests." });
+  }
   if (isCity) {
     const cityLandmarks = (content.CITY_CHALLENGES[quest.cityKey] && content.CITY_CHALLENGES[quest.cityKey].landmarks) || [];
     const completedCityLandmarks = cityLandmarks.filter((l) => doneIds.includes(l.id));
     if (completedCityLandmarks.length >= cityLandmarks.length) {
       return res.status(400).json({ error: "You have already completed all landmarks for this city!" });
+    }
+    let attemptsMap = {};
+    try {
+      attemptsMap = JSON.parse(user.city_attempts || "{}");
+    } catch (e) {
+      attemptsMap = {};
+    }
+    if ((attemptsMap[questId] || 0) >= 3) {
+      return res.status(400).json({ error: "Maximum 3 attempts reached for this landmark. This landmark is locked." });
     }
   }
   if (doneIds.includes(questId)) {
@@ -143,13 +177,16 @@ router.post("/submit", requireAuth, async (req, res) => {
       client.release();
     }
 
+    let fin = null;
     try {
-      await finalizeSubmission(submission.id);
+      fin = await finalizeSubmission(submission.id, clientDate);
     } catch (e) {
       console.error("finalizeSubmission error:", e);
     }
 
     return res.status(201).json({
+      streakIncreased: fin ? fin.streakIncreased : false,
+      streak: fin ? fin.streak : user.streak,
       submission: {
         id: submission.id,
         questId: submission.quest_id,
@@ -164,22 +201,33 @@ router.post("/submit", requireAuth, async (req, res) => {
     });
   }
 
-  // RULE 3 - City Challenge (in Fight part):
+  // RULE 3 - City Challenge (Challenge in Fight tab):
   // Automatically approved within the system when matching 2 criteria:
   // 1/ Picture fits the landmark picture using AI (~80-90%).
   // 2/ Location matches the landmark within +-10 meters (GPS is a MUST, NOT optional).
-  // Maximum 3 rounds per city challenge.
+  // Maximum 3 attempts (photo submissions) per landmark, then it locks.
   if (isCity) {
     if (!thumb) {
-      return res.status(400).json({ error: "City Challenge requires a photo of the landmark for AI review!" });
+      return res.status(400).json({ error: "Challenge requires a photo of the landmark for AI review!" });
     }
     if (!proofGps) {
-      return res.status(400).json({ error: "For City Challenge, GPS is a must, NOT optional! Please acquire your GPS location within ±10m." });
+      return res.status(400).json({ error: "For Challenge, GPS is a must, NOT optional! Please acquire your GPS location within ±10m." });
     }
 
     // Check if this specific landmark has already been completed
     if (doneIds.includes(questId)) {
       return res.status(400).json({ error: "You have already found this mystery landmark!" });
+    }
+
+    let attemptsMap = {};
+    try {
+      attemptsMap = JSON.parse(user.city_attempts || "{}");
+    } catch (e) {
+      attemptsMap = {};
+    }
+    const currentAttempts = attemptsMap[questId] || 0;
+    if (currentAttempts >= 3) {
+      return res.status(400).json({ error: "Maximum 3 attempts reached for this landmark. This landmark is locked." });
     }
 
     // 1. Check GPS match (Criterion 2 - within +-10m)
@@ -220,10 +268,14 @@ router.post("/submit", requireAuth, async (req, res) => {
         client.release();
       }
 
-      await finalizeSubmission(submission.id);
+      const fin = await finalizeSubmission(submission.id, clientDate);
 
       return res.status(200).json({
         autoApproved: true,
+        streakIncreased: fin ? fin.streakIncreased : false,
+        streak: fin ? fin.streak : user.streak,
+        attempts: currentAttempts,
+        maxAttempts: 3,
         gps: {
           passed: true,
           distanceMeters,
@@ -253,9 +305,27 @@ router.post("/submit", requireAuth, async (req, res) => {
       });
     }
 
-    // Criteria not met -> Reject, but can be retried until finished
+    // Criteria not met -> count attempt; locks if 3 attempts used
+    const newAttempts = currentAttempts + 1;
+    attemptsMap[questId] = newAttempts;
+    const today = content.todayStr(clientDate || (user && user._client_date));
+    await pool.query("UPDATE users SET city_attempts = $2, city_attempts_date = $3 WHERE id = $1", [user.id, JSON.stringify(attemptsMap), today]);
+    const isLocked = newAttempts >= 3;
+
+    let errorMsg = !gpsPassed && !aiPassed
+      ? "Neither GPS proximity (±10m) nor AI picture match criteria were met. Please move closer and take a clearer photo!"
+      : !gpsPassed
+      ? `Location not matched (distance: ${distanceMeters}m away; must be within ±10m).`
+      : `AI picture detection did not match (~${aiResult.score}% fit, required 80-90%). Please capture ${quest.title} clearly!`;
+    if (isLocked) {
+      errorMsg = `3/3 attempts failed! This landmark is now locked.`;
+    }
+
     return res.status(200).json({
       autoApproved: false,
+      attempts: newAttempts,
+      maxAttempts: 3,
+      locked: isLocked,
       gps: {
         passed: gpsPassed,
         distanceMeters: distanceMeters !== null ? distanceMeters : "Unknown",
@@ -271,12 +341,8 @@ router.post("/submit", requireAuth, async (req, res) => {
         feedback: aiResult.feedback,
         aiModel: aiResult.aiModel
       },
-      error: !gpsPassed && !aiPassed
-        ? "Neither GPS proximity (±10m) nor AI picture match criteria were met. Please move closer and take a clearer photo!"
-        : !gpsPassed
-        ? `Location not matched (distance: ${distanceMeters}m away; must be within ±10m).`
-        : `AI picture detection did not match (~${aiResult.score}% fit, required 80-90%). Please capture ${quest.title} clearly!`,
-      canRetry: true
+      error: errorMsg,
+      canRetry: !isLocked
     });
   }
 

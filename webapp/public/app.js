@@ -35,7 +35,8 @@
   /* ================= API ================= */
   async function api(path, opts) {
     opts = opts || {};
-    const headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+    const localDate = new Date().toLocaleDateString("en-CA");
+    const headers = Object.assign({ "Content-Type": "application/json", "x-client-date": localDate }, opts.headers || {});
     if (token) headers.Authorization = "Bearer " + token;
     const res = await fetch("/api" + path, {
       method: opts.method || "GET",
@@ -257,11 +258,44 @@
   /* ================= LANDING PAGE (always reachable at /intro) ================= */
   const landingScroll = $("landing-scroll");
   let landingRevealObserver = null;
+
+  async function renderTrueQuestCampaign() {
+    try {
+      if (!content) content = await api("/content");
+    } catch (e) {}
+    if (!content || !content.greenQuestCampaign) return;
+    const camp = content.greenQuestCampaign;
+    const target = camp.target || 500;
+    const completed = camp.completed || 0;
+    const fillEl = $("true-quest-fill");
+    const countEl = $("true-quest-count");
+    const statusEl = $("true-quest-status");
+    const badgeEl = $("true-quest-badge");
+
+    const treesPlanted = Math.floor(completed / target);
+    const inCycle = completed % target;
+    const nextTreeNum = treesPlanted + 1;
+    const pct = Math.round((inCycle / target) * 100);
+
+    if (fillEl) fillEl.style.width = pct + "%";
+    if (countEl) {
+      countEl.textContent = `${inCycle} / ${target} green quests`;
+    }
+    if (statusEl) {
+      let achievedBadge = treesPlanted > 0 ? ` · <span class="trees-achieved-tag">🌳 ${treesPlanted} planted</span>` : "";
+      statusEl.innerHTML = `${pct}% towards Tree <strong class="tree-badge-highlight">#${nextTreeNum}</strong>${achievedBadge}`;
+    }
+    if (badgeEl && treesPlanted > 0) {
+      badgeEl.innerHTML = `🌱 True Quest · <span class="trees-achieved-tag" style="margin-left:0;">🌳 ${treesPlanted} tree${treesPlanted > 1 ? "s" : ""} achieved!</span>`;
+    }
+  }
+
   function openLanding(pushUrl) {
     $("landing-overlay").classList.add("open");
     document.body.style.overflow = "hidden";
     landingScroll.scrollTop = 0;
     if (pushUrl !== false) history.pushState(null, "", "/intro");
+    renderTrueQuestCampaign().catch(() => {});
     if (!landingRevealObserver && "IntersectionObserver" in window) {
       landingRevealObserver = new IntersectionObserver(
         (entries) => {
@@ -346,14 +380,21 @@
     return doneIds.includes(id) ? "done" : "new";
   }
 
-  function makeQuestCard(q, isDaily) {
+  function makeQuestCard(q, isDaily, isDone = false) {
     const card = document.createElement("button");
     card.type = "button";
     const isPending = !isDaily && questsStatus.covePendingIds && questsStatus.covePendingIds.includes(q.id);
-    card.className = "qcard glass glass-interactive" + (isPending ? " is-pending" : "");
-    const chipHtml = isPending
-      ? '<span class="status-chip status-pending">In Cove ⏳</span>'
-      : (isDaily ? '<span class="status-chip status-new">Today\'s</span>' : '<span class="status-chip status-new">Cove Quest</span>');
+    card.className = "qcard glass" + (isDone ? " is-done" : " glass-interactive") + (isPending ? " is-pending" : "");
+    let chipHtml = "";
+    if (isDone) {
+      chipHtml = '<span class="status-chip status-done">✅ Finished</span>';
+    } else if (isPending) {
+      chipHtml = '<span class="status-chip status-pending">In Cove ⏳</span>';
+    } else if (isDaily) {
+      chipHtml = '<span class="status-chip status-new">Today\'s</span>';
+    } else {
+      chipHtml = '<span class="status-chip status-new">Cove Quest</span>';
+    }
     card.innerHTML =
       '<div class="glass-sheen"></div>' +
       '<div class="icon-chip">' + q.icon + "</div>" +
@@ -363,7 +404,11 @@
       '<span class="reward-chip"><svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>+' + q.reward + "</span>" +
       chipHtml +
       "</div>";
-    card.addEventListener("click", () => openModal(q.id, isDaily));
+    if (isDone) {
+      card.addEventListener("click", () => toast("Quest already finished today! ✅", "🐧"));
+    } else {
+      card.addEventListener("click", () => openModal(q.id, isDaily));
+    }
     return card;
   }
 
@@ -381,24 +426,44 @@
   if ($("btn-cove-culture")) $("btn-cove-culture").addEventListener("click", () => switchCovePanel(1));
   if ($("btn-cove-random")) $("btn-cove-random").addEventListener("click", () => switchCovePanel(2));
 
-  // Completed quests are no longer shown at all — once done, they drop out
-  // of the grid instead of sticking around greyed out.
+  // Today's Quest: All 4 displayed. Completed ones stay in place with a line through them.
+  // Randomizing (reroll) only randomizes the outstanding ones.
   function renderQuestGrids() {
     if (!content) return;
     const dailyGrid = $("daily-grid");
     dailyGrid.innerHTML = "";
-    const todaysQuests = questsStatus.dailyQuestIds.map((id) => (content.dailyPool || []).find((q) => q.id === id)).filter(Boolean);
-    const todaysRemaining = todaysQuests.filter((q) => !questsStatus.dailyDoneIds.includes(q.id));
-    if (todaysRemaining.length) {
-      todaysRemaining.forEach((q) => dailyGrid.appendChild(makeQuestCard(q, true)));
+    const doneIds = questsStatus.dailyDoneIds || [];
+    const todaysQuests = (questsStatus.dailyQuestIds || []).map((id) => (content.dailyPool || []).find((q) => q.id === id)).filter(Boolean);
+
+    if (todaysQuests.length) {
+      todaysQuests.forEach((q) => {
+        const isDone = doneIds.includes(q.id);
+        dailyGrid.appendChild(makeQuestCard(q, true, isDone));
+      });
     } else {
       const empty = document.createElement("div");
       empty.className = "fish-empty";
-      empty.textContent = "All done for today — nice! Hit 🔀 for more, or come back tomorrow.";
+      empty.textContent = "All done for today — nice! New quests refresh at 23:59 tonight.";
       dailyGrid.appendChild(empty);
     }
-    const doneCount = todaysQuests.filter((q) => questsStatus.dailyDoneIds.includes(q.id)).length;
-    $("daily-progress").textContent = doneCount + "/" + (todaysQuests.length || 4) + " done";
+    const doneCount = Math.min(4, todaysQuests.filter((q) => doneIds.includes(q.id)).length);
+    $("daily-progress").textContent = doneCount + "/4 done";
+
+    const rerollBtn = $("daily-reroll-btn");
+    if (rerollBtn) {
+      if (doneCount >= 4) {
+        rerollBtn.disabled = true;
+        rerollBtn.style.opacity = "0.35";
+        rerollBtn.style.cursor = "not-allowed";
+        rerollBtn.title = "All 4 Daily Quests completed! Refreshes at 23:59 tonight.";
+      } else {
+        rerollBtn.disabled = false;
+        rerollBtn.style.opacity = "1";
+        rerollBtn.style.cursor = "pointer";
+        const outstanding = 4 - doneCount;
+        rerollBtn.title = `Randomize remaining ${outstanding} quest(s)`;
+      }
+    }
 
     // Panel 0: Green Quests
     const greenGrid = $("green-grid");
@@ -507,18 +572,25 @@
     const submitBtn = $("submit-btn");
     if (!submitBtn) return;
     if (isCity) {
-      // City Challenge requires BOTH photo and GPS location
+      // Challenge requires BOTH photo and GPS location
+      const attempts = (cityData && cityData.attempts && cityData.attempts[q.id]) || 0;
+      if (attempts >= 3) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "🔒 Locked (3/3 Attempts Used)";
+        return;
+      }
+      const attemptNum = attempts + 1;
       const hasPhoto = !!previewThumb;
       const hasGps = !!activeProofGps;
       submitBtn.disabled = !(hasPhoto && hasGps);
       if (!hasPhoto && !hasGps) {
-        submitBtn.textContent = "📸 Snap photo & 📍 Acquire GPS to verify";
+        submitBtn.textContent = `📸 Snap photo & 🛰️ Acquire GPS (Attempt ${attemptNum}/3)`;
       } else if (!hasPhoto) {
-        submitBtn.textContent = "📸 Snap photo matching view to verify";
+        submitBtn.textContent = `📸 Snap photo matching view (Attempt ${attemptNum}/3)`;
       } else if (!hasGps) {
-        submitBtn.textContent = "📍 Acquire GPS (Required) to verify";
+        submitBtn.textContent = `🛰️ Acquire GPS to verify (Attempt ${attemptNum}/3)`;
       } else {
-        submitBtn.textContent = "Verify & Auto-Approve";
+        submitBtn.textContent = `Verify & Auto-Approve (Attempt ${attemptNum}/3)`;
       }
     } else if (activeIsDaily) {
       submitBtn.disabled = false;
@@ -856,7 +928,7 @@
     const typePill = $("modal-quest-type-pill");
     if (typePill) {
       if (isCity) {
-        typePill.textContent = "🏙️ City Challenge · Mystery Landmark";
+        typePill.textContent = "🏙️ Challenge · Mystery Landmark";
         typePill.className = "modal-quest-type-pill is-city";
       } else if (isDaily) {
         typePill.textContent = "🌤️ Today's Quest · Instant Reward";
@@ -880,8 +952,11 @@
     }
 
     if (isCity) {
+      const attempts = (cityData && cityData.attempts && cityData.attempts[questId]) || 0;
       $("dropzone-label").textContent = "📸 Snap photo matching the reference (required)";
-      $("dropzone-sub").textContent = "GPS + AI Detective will verify your location & camera angle";
+      $("dropzone-sub").textContent = attempts >= 3
+        ? "🔒 Maximum 3 attempts reached today. Refreshes at 23:59 PM."
+        : `GPS + AI Detective will verify location & view · Attempt ${attempts + 1} of 3`;
       checkProofRequirement();
     } else if (isDaily) {
       $("submit-btn").textContent = "Complete Quest";
@@ -1308,36 +1383,63 @@
             renderQuestGrids();
             await refreshCityData();
             closeModal();
-            toast("City Challenge complete! +" + res.submission.reward + " Puffins", "🏙️");
+            toast("Challenge complete! +" + res.submission.reward + " Puffins", "🏙️");
+            if (res.streakIncreased) {
+              celebrateStreak(res.streak || user.streak);
+              toast("🔥 Streak +1! You're on a " + (res.streak || user.streak) + "-day streak!", "🔥");
+            }
           };
         }
 
         burstConfetti();
         pulseCoin();
-        toast("City Challenge Auto-Approved! 🌟", "🎉");
+        toast("Challenge Auto-Approved! 🌟", "🎉");
+        if (res.streakIncreased) {
+          celebrateStreak(res.streak || user.streak);
+        }
       } else {
-        // "if not -> reject, the challenge can still be redo again until finish."
         if (p3Card) p3Card.classList.add("is-failed");
         if (p3Status) {
           p3Status.className = "puffin-trio-status status-failed";
-          p3Status.textContent = "✕ Not Approved";
+          p3Status.textContent = res.locked ? "🔒 Locked (3/3 Used)" : "✕ Attempt " + (res.attempts || 1) + "/3 Failed";
         }
-        if (p3Detail) p3Detail.textContent = res.error || "Criteria not met. Redo until finished!";
-
-        if (retryBtn) {
-          retryBtn.textContent = "🔄 Try Again / Retake Photo";
-          retryBtn.style.display = "";
-          retryBtn.onclick = () => {
-            showModalStage("idle");
-            checkProofRequirement();
-          };
-        }
-        if (cancelBtn) {
-          cancelBtn.style.display = "";
-          cancelBtn.onclick = () => closeModal();
+        if (p3Detail) {
+          p3Detail.textContent = res.locked
+            ? "3/3 photo attempts used today. Landmark is locked until 23:59 PM."
+            : (res.error || ("Criteria not met. " + (3 - (res.attempts || 1)) + " attempt(s) remaining today."));
         }
 
-        toast(res.error || "Criteria not met. You can retry anytime!", "⚠️");
+        if (res.locked) {
+          if (retryBtn) retryBtn.style.display = "none";
+          if (cancelBtn) {
+            cancelBtn.textContent = "Close (Locked)";
+            cancelBtn.style.display = "";
+            cancelBtn.onclick = async () => {
+              await refreshCityData();
+              closeModal();
+            };
+          }
+          toast("🔒 Landmark locked! 3/3 attempts used today.", "⚠️");
+        } else {
+          const left = 3 - (res.attempts || 1);
+          if (retryBtn) {
+            retryBtn.textContent = "🔄 Try Again (" + left + " left)";
+            retryBtn.style.display = "";
+            retryBtn.onclick = async () => {
+              await refreshCityData();
+              showModalStage("idle");
+              checkProofRequirement();
+            };
+          }
+          if (cancelBtn) {
+            cancelBtn.style.display = "";
+            cancelBtn.onclick = async () => {
+              await refreshCityData();
+              closeModal();
+            };
+          }
+          toast(res.error || ("Criteria not met. " + left + " attempt(s) remaining today."), "⚠️");
+        }
       }
     } catch (err) {
       if (p1Card) p1Card.classList.remove("is-active");
@@ -1384,10 +1486,11 @@
     }
 
     try {
-      const { submission } = await api("/quests/submit", {
+      const submitRes = await api("/quests/submit", {
         method: "POST",
         body: { questId, caption, thumb, proofGps, mediaType, postToProfile }
       });
+      const { submission, streakIncreased, streak } = submitRes;
       await refreshCore();
       renderHeader();
       renderQuestGrids();
@@ -1400,6 +1503,10 @@
         toast("+" + submission.reward + " Puffins earned!", "🐧");
         burstConfetti();
         pulseCoin();
+        if (streakIncreased) {
+          celebrateStreak(streak || user.streak);
+          toast("🔥 Streak +1! You're on a " + (streak || user.streak) + "-day streak!", "🔥");
+        }
       } else {
         // Cove Quest: Moved to Cove for community approval!
         $("done-title").textContent = "Moved to Cove! 🫧";
@@ -1896,6 +2003,12 @@
     if (!root) return;
     root.innerHTML = "";
     if (!cityData.city) {
+      const banner = document.createElement("div");
+      banner.className = "challenge-picker-intro";
+      banner.style.cssText = "margin-bottom:14px;padding:12px 14px;background:rgba(255,255,255,.45);border-radius:var(--radius-md);border:1px solid var(--border-glass);color:var(--ink);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;";
+      banner.innerHTML = '<span>🎯</span><span>Choose challenge! Earn more puffin coins! GPS + AI verified automatically!</span>';
+      root.appendChild(banner);
+
       const picker = document.createElement("div");
       picker.className = "city-picker";
       Object.keys(CITY_LABELS).forEach((key) => {
@@ -1932,13 +2045,13 @@
         '<span class="fight-tag">' + CITY_LABELS[cityData.city] + '</span>' +
         '<span class="fight-tag" style="background:rgba(79,209,192,.18);color:var(--kelp);border:1px solid rgba(79,209,192,.35);">' + completedCount + '/' + total + ' Found</span>' +
       '</div>' +
-      '<button class="city-change-btn" id="city-change-btn" type="button">Change city</button>';
+      '<button class="city-change-btn" id="city-change-btn" type="button">Change challenge</button>';
     root.appendChild(header);
 
     if (completedCount >= total) {
       const done = document.createElement("div");
       done.className = "city-all-done";
-      done.textContent = "🏆 All " + total + " mystery landmarks found! Pick another city to explore.";
+      done.textContent = "🏆 All " + total + " mystery landmarks found! Pick another challenge to explore.";
       root.appendChild(done);
     }
 
@@ -1947,12 +2060,21 @@
     grid.className = "quest-grid";
     landmarks.forEach((l) => {
       const isDone = doneIds.includes(l.id);
+      const attempts = (cityData.attempts && cityData.attempts[l.id]) || 0;
+      const isLocked = !isDone && attempts >= 3;
       const card = document.createElement("button");
       card.type = "button";
-      card.className = "qcard glass glass-interactive" + (isDone ? " is-done" : "");
-      const statusChip = isDone
-        ? '<span class="status-chip status-done">✅ Found</span>'
-        : '<span class="status-chip status-new">Mystery</span>';
+      card.className = "qcard glass glass-interactive" + (isDone ? " is-done" : "") + (isLocked ? " is-locked" : "");
+      let statusChip = "";
+      if (isDone) {
+        statusChip = '<span class="status-chip status-done">✅ Found</span>';
+      } else if (isLocked) {
+        statusChip = '<span class="status-chip" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.35);">🔒 Locked (3/3)</span>';
+      } else if (attempts > 0) {
+        statusChip = '<span class="status-chip status-new">Mystery (' + attempts + '/3)</span>';
+      } else {
+        statusChip = '<span class="status-chip status-new">Mystery</span>';
+      }
       card.innerHTML =
         '<div class="glass-sheen"></div>' +
         '<div class="icon-chip" style="filter:blur(3px) saturate(1.2);opacity:.7;">' + (l.icon || "🏛️") + "</div>" +
@@ -1962,8 +2084,12 @@
           '<span class="reward-chip"><svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>+' + l.reward + "</span>" +
           statusChip +
         "</div>";
-      if (!isDone) {
+      if (!isDone && !isLocked) {
         card.addEventListener("click", () => openModal(l.id, false));
+      } else if (isLocked) {
+        card.addEventListener("click", () => {
+          toast("🔒 Landmark locked! 3/3 attempts used today. Refreshes at 23:59 PM.", "⚠️");
+        });
       } else {
         card.style.opacity = "0.55";
         card.style.pointerEvents = "none";
@@ -2721,6 +2847,7 @@
       renderFishPanels();
       renderCoveProgress();
       renderCityChallenge();
+      renderTrueQuestCampaign().catch(() => {});
 
       // Show toast if a streak freeze was consumed to protect the streak
       if (user.freezeUsed) {

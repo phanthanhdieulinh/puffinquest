@@ -25,6 +25,9 @@ async function requireAuth(req, res, next) {
     const { rows } = await pool.query("SELECT * FROM users WHERE id = $1", [payload.uid]);
     if (!rows[0]) return res.status(401).json({ error: "Not signed in." });
     req.user = rows[0];
+    if (req.headers && req.headers["x-client-date"]) {
+      req.user._client_date = String(req.headers["x-client-date"]).trim();
+    }
     next();
   } catch (e) {
     return res.status(401).json({ error: "Session expired, please sign in again." });

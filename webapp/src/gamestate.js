@@ -3,16 +3,32 @@
 const { pool } = require("./db");
 const content = require("./content");
 
+function toDateStr(val) {
+  if (!val) return null;
+  if (typeof val === "string") return val.slice(0, 10);
+  if (val instanceof Date) {
+    const y = val.getUTCFullYear();
+    const m = String(val.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(val.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  return String(val).slice(0, 10);
+}
+
 /* Applies daily-quest rollover, cove-approval-count rollover, and streak
    decay to a user row, persisting any change. Called at the top of most
    authenticated routes so state is always fresh regardless of when the
    user last opened the app. Returns the (possibly updated) user row. */
-async function refreshUser(user) {
-  const today = content.todayStr();
+async function refreshUser(user, clientDate) {
+  const today = content.todayStr(clientDate || (user && user._client_date));
   let dirty = false;
   const patch = {};
 
-  if (user.daily_date !== today) {
+  const userDaily = toDateStr(user.daily_date);
+  const userCove = toDateStr(user.cove_date);
+  const userCity = toDateStr(user.city_attempts_date);
+
+  if (userDaily !== today) {
     patch.daily_date = today;
     patch.daily_quest_ids = content.dailyQuestIdsFor(today);
     patch.daily_done_ids = [];
@@ -21,27 +37,39 @@ async function refreshUser(user) {
     patch.daily_quest_ids = content.dailyQuestIdsFor(today);
     dirty = true;
   }
-  if (user.cove_date !== today) {
+  if (userCove !== today) {
     patch.cove_date = today;
     patch.cove_approved_today = 0;
     dirty = true;
   }
+  if (userCity !== today) {
+    patch.city_attempts_date = today;
+    patch.city_attempts = '{}';
+    dirty = true;
+  }
   if (user.last_completion_date) {
-    const last = new Date(user.last_completion_date);
-    const lastStr = last.toISOString().slice(0, 10);
-    const diffDays = Math.round((new Date(today + "T00:00:00") - new Date(lastStr + "T00:00:00")) / 86400000);
-    if (diffDays === 2 && user.streak > 0 && (user.streak_freezes || 0) > 0) {
-      // Missed exactly 1 day — consume a streak freeze to preserve streak
-      patch.streak_freezes = (user.streak_freezes || 0) - 1;
-      patch._freeze_used = true; // internal flag, not a real column
-      dirty = true;
-    } else if (diffDays > 1 && user.streak !== 0) {
-      patch.streak = 0;
-      dirty = true;
+    const lastStr = toDateStr(user.last_completion_date);
+    const diff = content.diffDays(today, lastStr);
+    const daysMissed = diff - 1;
+    if (daysMissed > 0 && user.streak > 0) {
+      const freezes = user.streak_freezes || 0;
+      if (freezes >= daysMissed) {
+        // Consuming streak freeze preserves streak and allows continuation
+        patch.streak_freezes = freezes - daysMissed;
+        patch.last_completion_date = content.yesterdayStr(today);
+        patch._freeze_used = true;
+        dirty = true;
+      } else {
+        patch.streak = 0;
+        dirty = true;
+      }
     }
   }
 
-  if (!dirty) return user;
+  if (!dirty) {
+    if (clientDate && !user._client_date) user._client_date = clientDate;
+    return user;
+  }
 
   // Remove internal flag before building SQL
   const freezeUsed = !!patch._freeze_used;
@@ -56,6 +84,7 @@ async function refreshUser(user) {
   );
   const updated = rows[0];
   if (freezeUsed) updated._freeze_used = true;
+  updated._client_date = clientDate || (user && user._client_date);
   return updated;
 }
 
@@ -196,7 +225,7 @@ function serializeUserPublic(user, journal) {
    submitter's balance/streak/journal in one transaction. Returns the
    updated owner row, or null if the submission was already finalized by a
    concurrent request (approvals race). */
-async function finalizeSubmission(submissionId) {
+async function finalizeSubmission(submissionId, clientDate) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -208,15 +237,17 @@ async function finalizeSubmission(submissionId) {
     }
     const ownerRes = await client.query("SELECT * FROM users WHERE id = $1 FOR UPDATE", [submission.user_id]);
     const owner = ownerRes.rows[0];
-    const today = content.todayStr();
+    const today = content.todayStr(clientDate || (owner && owner._client_date));
     const totalReward = submission.base_reward + submission.bonus_reward;
 
     let streak = owner.streak;
     let lastCompletionDate = owner.last_completion_date;
-    const lastStr = lastCompletionDate ? new Date(lastCompletionDate).toISOString().slice(0, 10) : null;
+    const lastStr = toDateStr(lastCompletionDate);
+    let streakIncreased = false;
     if (lastStr !== today) {
       streak = lastStr === content.yesterdayStr(today) ? streak + 1 : 1;
       lastCompletionDate = today;
+      streakIncreased = true;
     }
     const bestStreak = Math.max(owner.best_streak || 0, streak);
 
@@ -237,7 +268,7 @@ async function finalizeSubmission(submissionId) {
       [submissionId]
     );
     await client.query("COMMIT");
-    return { ownerId: owner.id, totalReward, streakIncreased: lastStr !== today };
+    return { ownerId: owner.id, totalReward, streak, bestStreak, streakIncreased };
   } catch (e) {
     await client.query("ROLLBACK");
     throw e;

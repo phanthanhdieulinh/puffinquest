@@ -81,6 +81,8 @@ CREATE TABLE IF NOT EXISTS users (
   social_facebook BOOLEAN NOT NULL DEFAULT false,
   social_instagram BOOLEAN NOT NULL DEFAULT false,
   social_linkedin BOOLEAN NOT NULL DEFAULT false,
+  city_attempts TEXT NOT NULL DEFAULT '{}',
+  city_attempts_date DATE,
   week_key TEXT,
   week_claimed BOOLEAN NOT NULL DEFAULT false,
   month_key TEXT,
@@ -177,7 +179,9 @@ const MIGRATIONS = [
   `ALTER TABLE submissions ADD COLUMN IF NOT EXISTS post_to_profile BOOLEAN NOT NULL DEFAULT true;`,
   `ALTER TABLE submissions ADD COLUMN IF NOT EXISTS proof_gps TEXT;`,
   `ALTER TABLE submissions ADD COLUMN IF NOT EXISTS media_type TEXT NOT NULL DEFAULT 'image';`,
-  `ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_freezes INTEGER NOT NULL DEFAULT 0;`
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_freezes INTEGER NOT NULL DEFAULT 0;`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS city_attempts TEXT NOT NULL DEFAULT '{}';`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS city_attempts_date DATE;`
 ];
 
 async function initSchema() {

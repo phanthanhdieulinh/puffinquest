@@ -24,10 +24,17 @@ router.get("/ai-status", (req, res) => {
 
 router.get("/", requireAuth, async (req, res) => {
   const user = await refreshUser(req.user);
+  let attempts = {};
+  try {
+    attempts = JSON.parse(user.city_attempts || "{}");
+  } catch (e) {
+    attempts = {};
+  }
   res.json({
     city: user.city || null,
     catalog: content.CITY_CHALLENGES,
     doneIds: toArray(user.fun_done_ids),
+    attempts,
     aiStatus: getAiVisionStatus()
   });
 });

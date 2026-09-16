@@ -84,7 +84,7 @@ router.post("/cast", requireAuth, async (req, res) => {
     }
   } else if (loot.type === "streak-freeze") {
     // Streak Freeze: protects your streak if you miss 1 day
-    detail = "Streak Freeze! Protects your streak for 1 missed day";
+    detail = "Protect 1 missed day!";
   } else if (loot.type === "coins" || loot.type === "jackpot") {
     const amount = (loot.min || 10) + Math.floor(Math.random() * ((loot.max || 25) - (loot.min || 10) + 1));
     balanceDelta += amount;

@@ -268,8 +268,10 @@
     :root:not([data-theme="light"]) .status-done{background:#123A2A;color:#5CE3A6;}
   }
 
-  .qcard.is-done{opacity:.75;}
-  .qcard.is-done .qtitle{text-decoration:line-through;text-decoration-color:var(--kelp);text-decoration-thickness:2px;}
+  .qcard.is-done{opacity:.7;background:rgba(255,255,255,.32);border-color:rgba(79,209,192,.35);}
+  .qcard.is-done:hover{transform:none;cursor:default;}
+  .qcard.is-done .qtitle{text-decoration:line-through;text-decoration-color:var(--kelp);text-decoration-thickness:2px;color:var(--ink-soft);}
+  .qcard.is-done .qdesc{text-decoration:line-through;text-decoration-color:var(--ink-faint);color:var(--ink-faint);opacity:.75;}
   .qcard.is-pending{border-color:rgba(255,216,115,.45);box-shadow:0 0 16px rgba(255,216,115,.15);}
 
   .rule-hint{font-size:12px;color:var(--ink-faint);margin-top:3px;}
@@ -1127,7 +1129,9 @@
   .landing-campaign h3{font-size:17px;margin:12px 0 5px;}
   .landing-campaign p{margin:0;font-size:12.5px;color:var(--ink-soft);line-height:1.5;}
   .campaign-progress{margin-top:14px;}
-  .campaign-progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-faint);font-family:"Space Mono";margin-top:6px;}
+  .campaign-progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-faint);font-family:"Space Mono";margin-top:6px;align-items:center;}
+  .tree-badge-highlight{display:inline-block;padding:1px 8px;border-radius:var(--radius-pill);background:linear-gradient(135deg,var(--gold),var(--coral));color:#fff;font-weight:800;font-size:11.5px;box-shadow:0 2px 6px rgba(255,107,74,.35);letter-spacing:.02em;vertical-align:middle;}
+  .trees-achieved-tag{display:inline-flex;align-items:center;gap:3px;color:var(--kelp);font-weight:700;font-size:11px;}
 
   .landing-cta{text-align:center;margin-top:22px;}
   .landing-cta .btn{width:100%;max-width:280px;}
@@ -1367,20 +1371,20 @@
   <section class="page" data-page="fight" id="page-fight">
     <div class="fight-page-head">
       <h1>⚔️ Fight for Puffins</h1>
-      <p>Choose your battlefield! Timely challenges, City mysteries with AI check, or PvP duel races.</p>
+      <p>Choose your battlefield! Tasks, Landmark Challenges with AI check, or PvP Fight duels.</p>
     </div>
 
     <!-- 3-Way Liquid Glass Sliding Segmented Control -->
     <div class="segmented-nav-wrap">
       <div class="segmented-nav-indicator" id="fight-seg-indicator"></div>
       <button class="segmented-nav-btn active" id="btn-fight-timely" data-panel="0" type="button">
-        <span>⏱️</span><span>Timely Challenge</span>
+        <span>⏱️</span><span>Task</span>
       </button>
       <button class="segmented-nav-btn" id="btn-fight-city" data-panel="1" type="button">
-        <span>🏙️</span><span>City Challenge</span>
+        <span>🏙️</span><span>Challenge</span>
       </button>
       <button class="segmented-nav-btn" id="btn-fight-pvp" data-panel="2" type="button">
-        <span>⚔️</span><span>Fight Puffins</span>
+        <span>⚔️</span><span>Fight</span>
       </button>
     </div>
 
@@ -1388,33 +1392,33 @@
     <div class="fight-carousel-viewport" id="fight-carousel-viewport">
       <div class="fight-carousel-track" id="fight-carousel-track">
 
-        <!-- Panel 0: Timely Challenges (Weekly, Monthly, Seasonal) -->
+        <!-- Panel 0: Tasks (Weekly, Monthly, Seasonal) -->
         <div class="fight-carousel-panel" id="fight-panel-timely">
           <div class="block-head" style="margin-top:8px;">
             <div>
-              <h2>⏱️ Timely Challenges</h2>
-              <p>Finish Weekly & Monthly fights to win bonus Puffins, exclusive titles, and badges!</p>
+              <h2>⏱️ Tasks</h2>
+              <p>Finish Weekly & Monthly tasks to win bonus Puffins, exclusive titles, and badges!</p>
             </div>
           </div>
           <div class="fight-grid" id="fight-list"></div>
         </div>
 
-        <!-- Panel 1: City Challenge (AI photo match ~80-90% + GPS +-10m) -->
+        <!-- Panel 1: Challenge (AI photo match ~80-90% + GPS +-10m) -->
         <div class="fight-carousel-panel" id="fight-panel-city">
           <div class="block-head" style="margin-top:8px;">
             <div>
-              <h2>🏙️ City Challenge <span class="section-badge section-badge-ai">🤖 AI</span></h2>
-              <p>Find mystery landmarks! GPS + photo verified by AI · 5 per city.</p>
+              <h2>🏙️ Challenge <span class="section-badge section-badge-ai">🤖 AI</span></h2>
+              <p>Choose challenge! Earn more puffin coins! GPS + AI verified automatically!</p>
             </div>
           </div>
           <div id="city-challenge-body"></div>
         </div>
 
-        <!-- Panel 2: Fight Puffins (PvP) — Coming Soon -->
+        <!-- Panel 2: Fight (PvP) — Coming Soon -->
         <div class="fight-carousel-panel" id="fight-panel-pvp">
           <div class="block-head" style="margin-top:8px;">
             <div>
-              <h2>⚔️ Fight Puffins (PvP)</h2>
+              <h2>⚔️ Fight (PvP)</h2>
               <p>Challenge a friend or a random puffineer. First to finish the quest wins the pot!</p>
             </div>
           </div>
@@ -1902,7 +1906,19 @@
       <p>Small real-world quests, tiny wins, real puffins cheering you on. Play a little, connect a little, do something kind — and watch the points, birds, and trees stack up.</p>
       <div class="landing-cta">
         <button class="btn btn-primary" id="landing-start-btn" type="button">🐧 Start your quest</button>
-        <p>Free, cute, and meaningful.</p>
+        <p>Free, fun and meaningful.</p>
+      </div>
+
+      <!-- True Quest Bar: Green Up Labs Tree Planting Campaign -->
+      <div class="landing-campaign glass glass-interactive landing-reveal" id="landing-true-quest" style="margin-top:26px;text-align:left;max-width:540px;margin-left:auto;margin-right:auto;">
+        <div class="glass-sheen"></div>
+        <span class="campaign-badge" id="true-quest-badge">🌱 True Quest</span>
+        <h3>Green Up Labs is planting trees with you</h3>
+        <p>From Oct 1, 2026 to Mar 1, 2027, with 500 green quests approved, Green Up Labs will plant 1 tree.</p>
+        <div class="campaign-progress">
+          <div class="fight-bar-track"><div class="fight-bar-fill" id="true-quest-fill" style="width:7%"></div></div>
+          <div class="campaign-progress-label"><span id="true-quest-count">36 / 500 green quests</span><span id="true-quest-status">7% towards Tree <strong class="tree-badge-highlight">#1</strong></span></div>
+        </div>
       </div>
     </div>
 
@@ -1957,17 +1973,6 @@
         <div class="skew-card glass glass-interactive"><div class="glass-sheen"></div><div class="icon-chip">🚮</div><h4>Litter Pick</h4><p>Pick up one piece of litter you spot outside.</p><div class="reward-chip"><svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>+10</div></div>
       </div>
     </section>
-
-    <div class="landing-campaign glass glass-interactive landing-reveal">
-      <div class="glass-sheen"></div>
-      <span class="campaign-badge">🎉 Live campaign</span>
-      <h3>WildTide Coffee is planting trees with you</h3>
-      <p>Every 500 "Toes in the Grass" quests completed this month, WildTide plants a real tree on the coast. 312 down, 188 to go — go touch some grass.</p>
-      <div class="campaign-progress">
-        <div class="fight-bar-track"><div class="fight-bar-fill" style="width:62%"></div></div>
-        <div class="campaign-progress-label"><span>312 / 500 quests</span><span>62%</span></div>
-      </div>
-    </div>
   </div>
   </div>
 </div>
