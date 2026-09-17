@@ -53,6 +53,8 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/city", cityRoutes);
 
 app.use(express.static(path.join(__dirname, "..", "public")));
+app.get("/privacy", (req, res) => res.sendFile(path.join(__dirname, "..", "public", "privacy.html")));
+app.get("/terms", (req, res) => res.sendFile(path.join(__dirname, "..", "public", "terms.html")));
 app.get("*", (req, res, next) => {
   if (req.path.startsWith("/api/")) return next();
   res.sendFile(path.join(__dirname, "..", "public", "index.html"));

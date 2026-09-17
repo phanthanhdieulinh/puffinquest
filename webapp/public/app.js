@@ -322,7 +322,6 @@
     document.body.style.overflow = "";
     if (location.pathname === "/intro") history.pushState(null, "", "/");
   }
-  $("landing-close").addEventListener("click", closeLanding);
   $("landing-start-btn").addEventListener("click", () => {
     closeLanding();
     showAuth();
@@ -334,9 +333,6 @@
   $("auth-close").addEventListener("click", () => {
     hideAuth();
     openLanding(false);
-  });
-  $("landing-overlay").addEventListener("click", (e) => {
-    if (e.target === $("landing-overlay")) closeLanding();
   });
 
   function wirePuffinGreet(mascotId, speechId, kidsContainerId) {
@@ -1055,7 +1051,6 @@
     if (e.key !== "Escape") return;
     if (overlay.classList.contains("open")) closeModal();
     else if ($("shared-profile-overlay").classList.contains("open")) closeSharedProfile();
-    else if ($("landing-overlay").classList.contains("open")) closeLanding();
     else if ($("direct-review-overlay").classList.contains("open")) closeDirectReview();
   });
 
