@@ -817,7 +817,6 @@
           $("btn-find-nearest").disabled = false;
           $("btn-find-nearest").textContent = "📍 Find Nearest";
           userCurrentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          activeProofGps = `${userCurrentLocation.lat.toFixed(5)}, ${userCurrentLocation.lng.toFixed(5)}`;
 
           const sorted = [...activeGreenQuestSpots].sort((a, b) => {
             const da = distanceKm(userCurrentLocation.lat, userCurrentLocation.lng, a.lat, a.lng);
@@ -851,6 +850,7 @@
     previewDataUrl = null;
     previewThumb = null;
     activeProofGps = null;
+    userCurrentLocation = null;
     activeMediaType = "image";
 
     setupGreenPanel(q);
@@ -1002,6 +1002,16 @@
     if ($("modal-icon")) {
       $("modal-icon").style.filter = "";
       $("modal-icon").style.opacity = "";
+    }
+    activeProofGps = null;
+    userCurrentLocation = null;
+    previewDataUrl = null;
+    previewThumb = null;
+    activeMediaType = "image";
+    if ($("gps-badge")) $("gps-badge").style.display = "none";
+    if ($("gps-btn")) {
+      $("gps-btn").style.display = "";
+      $("gps-btn").disabled = false;
     }
   }
   $("modal-close").addEventListener("click", closeModal);
