@@ -1179,6 +1179,17 @@
   .founder-social a:hover{transform:translateY(-3px) scale(1.08);box-shadow:0 8px 20px var(--shadow-strong);}
   .founder-social a svg{width:20px;height:20px;}
 
+  /* ============ LANDING: FOOTER ============ */
+  .landing-footer{
+    display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;
+    padding:24px 16px 32px;margin-top:32px;
+    font-size:12px;color:var(--ink-faint);
+    border-top:1px solid var(--border-glass);
+  }
+  .landing-footer a{color:var(--ink-soft);text-decoration:none;font-weight:600;}
+  .landing-footer a:hover{text-decoration:underline;color:var(--kelp);}
+  .footer-dot{color:var(--ink-faint);font-weight:700;}
+
   /* speech bubble + baby puffins that pop up when a mascot is tapped */
   .puffin-speech{
     position:absolute;left:100%;top:50%;transform:translate(-6px,-50%) scale(.8);
@@ -1945,7 +1956,7 @@
         </div>
       </button>
       <h1 id="landing-title">Where touching grass<br>earns you something back.</h1>
-      <p>A tiny quest every day. A community that cheers you on. A puffin that grows with you. Complete real-world challenges, earn points, and watch actual trees get planted — all while having the cutest time.</p>
+      <p>A tiny quest every day. A community that cheers you on. A puffin that grows with you. Complete real-world challenges, earn points, and watch actual trees get planted. All while having the cutest time.</p>
       <div class="landing-cta">
         <button class="btn btn-primary" id="landing-start-btn" type="button">🐧 Start your quest</button>
         <p>Free, fun and meaningful.</p>
@@ -2051,6 +2062,11 @@
       </div>
     </div>
 
+    <div class="landing-cta" style="margin-top:32px;margin-bottom:18px;">
+      <button class="btn btn-primary landing-start-btn-bottom" type="button">🐧 Start your quest</button>
+      <p>Free, fun and meaningful.</p>
+    </div>
+
     <section class="landing-block">
       <div class="landing-block-head landing-reveal">
         <h2>🌤️ Touch grass, your way</h2>
@@ -2082,10 +2098,13 @@
       </div>
     </div>
 
-    <div class="landing-cta" style="margin-top:32px;margin-bottom:18px;">
-      <button class="btn btn-primary landing-start-btn-bottom" type="button">🐧 Start your quest</button>
-      <p>Free, fun and meaningful.</p>
-    </div>
+    <footer class="landing-footer">
+      <a href="/privacy.html">Privacy</a>
+      <span class="footer-dot">·</span>
+      <a href="/terms.html">Terms of Use</a>
+      <span class="footer-dot">·</span>
+      <span>© Green Up Labs 2026</span>
+    </footer>
   </div>
   </div>
 </div>
