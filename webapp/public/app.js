@@ -168,9 +168,11 @@
     $("app-shell").style.display = "";
   }
   function showAuth(message) {
-    $("app-shell").style.display = "none";
     $("auth-overlay").classList.add("open");
     if (message) showAuthError(message);
+  }
+  function hideAuth() {
+    $("auth-overlay").classList.remove("open");
   }
   function showAuthError(msg) {
     const el = $("auth-error");
@@ -321,7 +323,18 @@
     if (location.pathname === "/intro") history.pushState(null, "", "/");
   }
   $("landing-close").addEventListener("click", closeLanding);
-  $("landing-start-btn").addEventListener("click", closeLanding);
+  $("landing-start-btn").addEventListener("click", () => {
+    closeLanding();
+    showAuth();
+  });
+  document.querySelector(".landing-start-btn-bottom").addEventListener("click", () => {
+    closeLanding();
+    showAuth();
+  });
+  $("auth-close").addEventListener("click", () => {
+    hideAuth();
+    openLanding(false);
+  });
   $("landing-overlay").addEventListener("click", (e) => {
     if (e.target === $("landing-overlay")) closeLanding();
   });
@@ -357,6 +370,18 @@
     },
     { passive: false }
   );
+  const screenshotCarousel = $("screenshot-carousel");
+  if (screenshotCarousel) {
+    screenshotCarousel.addEventListener(
+      "wheel",
+      (e) => {
+        if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+        screenshotCarousel.scrollLeft += e.deltaY;
+        e.preventDefault();
+      },
+      { passive: false }
+    );
+  }
 
   /* ================= HEADER / DASHBOARD ================= */
   function renderHeader() {
@@ -2893,14 +2918,14 @@
   } else if (birdMatch) {
     // A shared profile link is a public page — don't stack the sign-in
     // wall behind it. It appears once the visitor closes the profile.
-    $("auth-overlay").classList.remove("open");
   } else if (reviewMatch) {
     // A review link needs an account right away, so go straight to sign-in.
+    openLanding(false);
     showAuth();
     pendingDirectReviewAfterAuth = parseInt(reviewMatch[1], 10);
   } else {
     // Everyone else (root "/", "/intro", or anything unrecognized) meets
     // the landing page first instead of a login wall.
-    openLanding(false);
+    openLanding(initialPath === "/intro" ? false : false);
   }
 })();

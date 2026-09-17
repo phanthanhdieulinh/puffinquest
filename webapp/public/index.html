@@ -1137,6 +1137,53 @@
   .landing-cta .btn{width:100%;max-width:280px;}
   .landing-cta p{margin:12px auto 0;max-width:none;font-size:11.5px;color:var(--ink-faint);}
 
+  /* ============ LANDING: WHO IS THIS FOR ============ */
+  .landing-audience{margin-top:40px;}
+  .landing-audience-head{text-align:center;margin-bottom:14px;}
+  .landing-audience-head h2{font-size:18px;margin:8px 0 4px;}
+  .landing-audience-head p{margin:0 auto;max-width:38ch;font-size:12.5px;color:var(--ink-soft);}
+  .audience-card{border-radius:var(--radius-xl);padding:24px 20px;text-align:left;}
+  .audience-list{list-style:none;padding:0;margin:12px 0 0;display:flex;flex-direction:column;gap:10px;}
+  .audience-list li{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--ink);line-height:1.55;}
+  .audience-list li .aud-icon{flex:none;font-size:18px;margin-top:1px;}
+  .audience-tagline{text-align:center;margin-top:18px;font-family:"Fredoka";font-size:15px;font-weight:600;color:var(--coral-dark);padding:10px 16px;border-radius:var(--radius-pill);background:linear-gradient(135deg,rgba(255,107,74,.1),rgba(255,201,77,.12));border:1px solid rgba(255,107,74,.2);display:inline-block;}
+  .audience-tagline-wrap{text-align:center;}
+
+  /* ============ LANDING: APP SCREENSHOTS ============ */
+  .landing-screenshots{margin-top:40px;}
+  .landing-screenshots-head{text-align:center;margin-bottom:4px;}
+  .landing-screenshots-head h2{font-size:18px;margin:8px 0 4px;}
+  .landing-screenshots-head p{margin:0 auto;max-width:38ch;font-size:12.5px;color:var(--ink-soft);}
+  .screenshot-scroll{display:flex;gap:16px;overflow-x:auto;padding:16px 8px 24px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .screenshot-scroll::-webkit-scrollbar{display:none;}
+  .screenshot-item{flex:none;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .screenshot-frame{
+    width:180px;border-radius:var(--radius-xl);overflow:hidden;
+    box-shadow:0 12px 32px -8px var(--shadow-strong),0 2px 8px var(--shadow);
+    border:2px solid var(--border-glass);transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s;
+  }
+  .screenshot-frame:hover{transform:translateY(-6px) scale(1.02);box-shadow:0 18px 40px -10px var(--shadow-strong);}
+  .screenshot-frame img{width:100%;display:block;}
+  .screenshot-label{font-family:"Fredoka";font-size:12px;font-weight:600;color:var(--ink-soft);}
+
+  /* ============ LANDING: FOUNDER ============ */
+  .landing-founder{margin-top:44px;margin-bottom:10px;}
+  .founder-card{border-radius:var(--radius-xl);padding:28px 22px;text-align:center;background:linear-gradient(150deg,var(--surface-strong),var(--kelp-soft) 80%);}
+  .founder-avatar{width:80px;height:80px;border-radius:50%;border:3px solid var(--border-glass);box-shadow:0 8px 20px var(--shadow);object-fit:cover;margin:0 auto 12px;display:block;background:var(--surface);font-size:48px;line-height:80px;}
+  .founder-name{font-family:"Fredoka";font-size:20px;font-weight:700;color:var(--ink);margin:0 0 2px;}
+  .founder-role{font-size:13px;color:var(--ink-soft);margin:0 0 4px;line-height:1.4;}
+  .founder-role a{color:var(--kelp);text-decoration:underline;text-underline-offset:2px;}
+  .founder-bio{font-size:12px;color:var(--ink-faint);margin:8px auto 0;max-width:36ch;line-height:1.55;}
+  .founder-social{display:flex;gap:10px;justify-content:center;margin-top:14px;}
+  .founder-social a{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:var(--surface-strong);border:1px solid var(--border-glass);transition:transform .2s,box-shadow .2s;box-shadow:0 4px 12px var(--shadow);}
+  .founder-social a:hover{transform:translateY(-3px) scale(1.08);box-shadow:0 8px 20px var(--shadow-strong);}
+  .founder-social a svg{width:20px;height:20px;}
+
+  /* ============ AUTH CLOSE BUTTON ============ */
+  .auth-close-bar{position:absolute;top:calc(14px + env(safe-area-inset-top));right:16px;z-index:2;}
+  .auth-close-bar .modal-close{width:38px;height:38px;font-size:17px;}
+  #auth-overlay{position:relative;}
+
   /* speech bubble + baby puffins that pop up when a mascot is tapped */
   .puffin-speech{
     position:absolute;left:100%;top:50%;transform:translate(-6px,-50%) scale(.8);
@@ -1903,7 +1950,7 @@
         </div>
       </button>
       <h1 id="landing-title">Where touching grass<br>earns you something back.</h1>
-      <p>Small real-world quests, tiny wins, real puffins cheering you on. Play a little, connect a little, do something kind — and watch the points, birds, and trees stack up.</p>
+      <p>A tiny quest every day. A community that cheers you on. A puffin that grows with you. Complete real-world challenges, earn points, and watch actual trees get planted — all while having the cutest time.</p>
       <div class="landing-cta">
         <button class="btn btn-primary" id="landing-start-btn" type="button">🐧 Start your quest</button>
         <p>Free, fun and meaningful.</p>
@@ -1925,27 +1972,27 @@
     <div class="landing-pillars">
       <div class="pillar-card glass glass-interactive landing-reveal">
         <div class="glass-sheen"></div>
-        <div class="icon-chip">🌿</div>
-        <h3>Touch grass</h3>
-        <p>Bite-size real-world quests that pull you outside, even for a minute.</p>
+        <div class="icon-chip">🐧</div>
+        <h3>Your Puffin, Your Buddy</h3>
+        <p>Adopt a puffin companion that grows with you. Dress it up, collect outfits, and watch it evolve as you complete more quests.</p>
       </div>
       <div class="pillar-card glass glass-interactive landing-reveal">
         <div class="glass-sheen"></div>
-        <div class="icon-chip">🧭</div>
-        <h3>Play</h3>
-        <p>Daily quests, seasonal Fights, and a fishing pond full of silly rewards.</p>
+        <div class="icon-chip">🌤️</div>
+        <h3>Daily Quests</h3>
+        <p>Tiny real-world challenges each day — drink water, tidy your desk, watch the sky. One tap to finish, instant dopamine.</p>
       </div>
       <div class="pillar-card glass glass-interactive landing-reveal">
         <div class="glass-sheen"></div>
         <div class="icon-chip">🫧</div>
-        <h3>Connect</h3>
-        <p>Swipe through the Cove and cheer on fellow puffineers' little wins.</p>
+        <h3>Review Cove</h3>
+        <p>Swipe to approve community quests, like BeReal meets kindness. Cheer on fellow puffineers and earn extra points.</p>
       </div>
       <div class="pillar-card glass glass-interactive landing-reveal">
         <div class="glass-sheen"></div>
-        <div class="icon-chip">💛</div>
-        <h3>Do good</h3>
-        <p>Every quest nudges you toward something small, kind, and real.</p>
+        <div class="icon-chip">🏙️</div>
+        <h3>City Challenges</h3>
+        <p>Mystery landmarks around your city, verified by AI + GPS. Solve clues, explore hidden spots, and earn big rewards.</p>
       </div>
     </div>
 
@@ -1953,11 +2000,55 @@
       <div class="profile-stats glass glass-interactive">
         <div class="glass-sheen"></div>
         <div class="stat-tile"><div class="stat-num">🐧</div><div class="stat-label">Puffins</div></div>
-        <div class="stat-tile"><div class="stat-num">🐦</div><div class="stat-label">Birds</div></div>
+        <div class="stat-tile"><div class="stat-num">🎣</div><div class="stat-label">Fishing</div></div>
         <div class="stat-tile"><div class="stat-num">🌳</div><div class="stat-label">Trees</div></div>
         <div class="stat-tile"><div class="stat-num">✨</div><div class="stat-label">Cute stuff</div></div>
       </div>
     </div>
+
+    <!-- Who is this for? -->
+    <div class="landing-audience landing-reveal">
+      <div class="landing-audience-head">
+        <h2>🫶 Who is this for?</h2>
+        <p>Anyone who just needs a fun reason to step outside.</p>
+      </div>
+      <div class="audience-card glass glass-interactive">
+        <div class="glass-sheen"></div>
+        <ul class="audience-list">
+          <li><span class="aud-icon">📱</span><span>Weekends pass by scrolling on their phone — and they wish they didn't.</span></li>
+          <li><span class="aud-icon">🌿</span><span>They want to live greener, but everything about it sounds like a boring lecture.</span></li>
+          <li><span class="aud-icon">💭</span><span>They do kind, small things every day — but nobody notices, and nothing records it.</span></li>
+          <li><span class="aud-icon">🤝</span><span>They want to go out with friends, but feel too shy to ask first.</span></li>
+        </ul>
+        <div class="audience-tagline-wrap"><span class="audience-tagline">🐧 They just need a fun reason to step outside.</span></div>
+      </div>
+    </div>
+
+    <!-- App Screenshots -->
+    <section class="landing-screenshots landing-reveal">
+      <div class="landing-screenshots-head">
+        <h2>📸 A peek inside</h2>
+        <p>Here's what your quest looks like, tab by tab.</p>
+      </div>
+      <div class="screenshot-scroll" id="screenshot-carousel">
+        <div class="screenshot-item">
+          <div class="screenshot-frame"><img src="/img/screenshot-quest.jpg" alt="Quest tab showing daily quests" loading="lazy" /></div>
+          <span class="screenshot-label">🌤️ Daily Quests</span>
+        </div>
+        <div class="screenshot-item">
+          <div class="screenshot-frame"><img src="/img/screenshot-cove.jpg" alt="Review Cove community approval" loading="lazy" /></div>
+          <span class="screenshot-label">🫧 Review Cove</span>
+        </div>
+        <div class="screenshot-item">
+          <div class="screenshot-frame"><img src="/img/screenshot-challenge.jpg" alt="City Challenge with AI" loading="lazy" /></div>
+          <span class="screenshot-label">🏙️ City Challenge</span>
+        </div>
+        <div class="screenshot-item">
+          <div class="screenshot-frame"><img src="/img/screenshot-fish.jpg" alt="Fishing Pond gacha mini-game" loading="lazy" /></div>
+          <span class="screenshot-label">🎣 Fishing Pond</span>
+        </div>
+      </div>
+    </section>
 
     <section class="landing-block">
       <div class="landing-block-head landing-reveal">
@@ -1973,6 +2064,27 @@
         <div class="skew-card glass glass-interactive"><div class="glass-sheen"></div><div class="icon-chip">🚮</div><h4>Litter Pick</h4><p>Pick up one piece of litter you spot outside.</p><div class="reward-chip"><svg viewBox="0 0 64 64"><use href="#i-puffin"/></svg>+10</div></div>
       </div>
     </section>
+
+    <!-- Founder Puffin -->
+    <div class="landing-founder landing-reveal">
+      <div class="founder-card glass glass-interactive">
+        <div class="glass-sheen"></div>
+        <div class="founder-avatar">🐧</div>
+        <h3 class="founder-name">Linh Phan</h3>
+        <p class="founder-role">Founder & CEO of <a href="https://www.greenuplabs.com" target="_blank" rel="noopener">Green Up Labs</a></p>
+        <p class="founder-role">MSc in Venture Creation — National University of Singapore</p>
+        <p class="founder-bio">8+ years building social businesses and youth organisations. Made this app because even puffins deserve a greener world 🌿</p>
+        <div class="founder-social">
+          <a href="https://www.linkedin.com/in/phanthanhdieulinh/" target="_blank" rel="noopener" title="LinkedIn"><svg viewBox="0 0 40 40"><use href="#i-linkedin"/></svg></a>
+          <a href="https://www.facebook.com/linhphantastic/" target="_blank" rel="noopener" title="Facebook"><svg viewBox="0 0 40 40"><use href="#i-facebook"/></svg></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="landing-cta" style="margin-top:32px;margin-bottom:18px;">
+      <button class="btn btn-primary landing-start-btn-bottom" type="button">🐧 Start your quest</button>
+      <p>Free, fun and meaningful.</p>
+    </div>
   </div>
   </div>
 </div>
@@ -1994,7 +2106,8 @@
 </div>
 
 <!-- Auth overlay: login / register, shown until a valid session exists -->
-<div class="modal-overlay open" id="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+<div class="modal-overlay" id="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+  <div class="auth-close-bar"><button class="modal-close" id="auth-close" aria-label="Close" type="button">✕</button></div>
   <div class="modal welcome-modal" id="auth-modal">
     <svg class="welcome-mascot" viewBox="0 0 64 64"><use href="#i-puffin"/></svg>
     <h3 id="auth-title">Welcome to Puffin Quest</h3>
